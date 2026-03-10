@@ -1,24 +1,64 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import React, { useEffect } from "react";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Platform } from "react-native";
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { useFonts } from "expo-font";
+import { Slot, SplashScreen } from "expo-router";
+import { setBackgroundColorAsync } from "expo-system-ui";
+
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import * as NavigationBar from "expo-navigation-bar";
+
+//Helpers
+import { queryClient } from "@/core/helper/queryClient";
+
+import { QueryClientProvider } from "@tanstack/react-query";
+import "./global.css";
+
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+
+  const [fontsLoaded, fontError] = useFonts({
+    InterItalic: require("../src/assets/fonts/Inter_24pt-Italic.ttf"),
+    InterBold: require("../src/assets/fonts/Inter_24pt-Bold.ttf"),
+    InterSemiBold: require("../src/assets/fonts/Inter_24pt-SemiBold.ttf"),
+    InterMedium: require("../src/assets/fonts/Inter_24pt-Medium.ttf"),
+    InterRegular: require("../src/assets/fonts/Inter_24pt-Regular.ttf"),
+    InterLight: require("../src/assets/fonts/Inter_24pt-Light.ttf"),
+  })
+
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      NavigationBar.setButtonStyleAsync("dark");
+      setBackgroundColorAsync("#181A2A");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (fontError) throw fontError;
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView
+        style={{
+          flex: 1,
+          paddingTop: 0,
+          backgroundColor: "#fff",
+        }}
+      >
+        <SafeAreaProvider>
+          <Slot />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
+  )
 }
