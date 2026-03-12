@@ -3,7 +3,7 @@ import {
   View, 
   Text, 
   TextInput, 
-  TouchableOpacity, 
+  Pressable, 
   KeyboardAvoidingView, 
   Platform, 
   ActivityIndicator 
@@ -85,7 +85,7 @@ const LoginScreen = () => {
             <Text className="text-xs font-InterBold text-lora-text tracking-wider mb-2 uppercase">Contraseña</Text>
             <View className="flex-row items-center border border-lora-border rounded-2xl px-4 h-14 bg-white focus:border-lora-primary">
               <Ionicons name="lock-closed" size={20} color="#94A3B8" className="mr-3" />
-              <TextInput
+               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
@@ -93,15 +93,15 @@ const LoginScreen = () => {
                 secureTextEntry={!showPassword}
                 className="flex-1 font-InterMedium text-lora-text text-lg tracking-widest"
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="p-2 -mr-2">
+              <Pressable onPress={() => setShowPassword(!showPassword)} className="p-2 -mr-2 active:opacity-70">
                 <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#94A3B8" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
 
           {/* Submit Button */}
-          <TouchableOpacity 
-            className={`h-14 rounded-2xl items-center justify-center shadow-sm ${!isFormValid || isLoading ? 'bg-gray-400' : 'bg-lora-primary active:bg-green-700'}`}
+          <Pressable 
+            className={`h-14 rounded-2xl items-center justify-center shadow-sm active:opacity-70 ${!isFormValid || isLoading ? 'bg-gray-400' : 'bg-lora-primary'}`}
             disabled={!isFormValid || isLoading}
             onPress={handleLogin}
           >
@@ -110,7 +110,7 @@ const LoginScreen = () => {
             ) : (
               <Text className="text-white text-lg font-InterBold">Ingresar</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Divider */}
           <View className="flex-row items-center my-6">
@@ -121,24 +121,24 @@ const LoginScreen = () => {
 
           {/* Social Logins */}
           <View className="flex-row space-x-4 mb-2">
-            <TouchableOpacity className="flex-1 flex-row items-center justify-center h-14 rounded-2xl border border-lora-border bg-white active:bg-gray-50">
+            <Pressable className="flex-1 flex-row items-center justify-center h-14 rounded-2xl border border-lora-border bg-white active:opacity-70">
               <Ionicons name="logo-google" size={20} color="#DB4437" className="mr-2" />
               <Text className="font-InterBold text-lora-text">Google</Text>
-            </TouchableOpacity>
+            </Pressable>
             
-            <TouchableOpacity className="flex-1 ml-4 flex-row items-center justify-center h-14 rounded-2xl border border-lora-border bg-[#0A66C2] active:bg-[#004182]">
+            <Pressable className="flex-1 ml-4 flex-row items-center justify-center h-14 rounded-2xl border border-lora-border bg-[#0A66C2] active:opacity-70">
               <Ionicons name="logo-linkedin" size={20} color="#ffffff" className="mr-2" />
               <Text className="font-InterBold text-white">LinkedIn</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
         {/* Help Link */}
         <View className="mt-8 flex-row justify-center">
           <Text className="text-lora-text-muted font-InterMedium">¿Problemas para acceder? </Text>
-          <TouchableOpacity>
+          <Pressable onPress={() => alert('Contactando...')}>
             <Text className="text-lora-primary font-InterBold">Contacta al Administrador</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
 
@@ -148,9 +148,9 @@ const LoginScreen = () => {
           © 2024 La Lora Software. Todos los derechos reservados.
         </Text>
         <View className="flex-row">
-          <TouchableOpacity><Text className="text-xs text-lora-text-muted/80 font-InterMedium">Términos</Text></TouchableOpacity>
+          <Pressable><Text className="text-xs text-lora-text-muted/80 font-InterMedium">Términos</Text></Pressable>
           <Text className="text-xs text-lora-text-muted/80 mx-2">•</Text>
-          <TouchableOpacity><Text className="text-xs text-lora-text-muted/80 font-InterMedium">Privacidad</Text></TouchableOpacity>
+          <Pressable><Text className="text-xs text-lora-text-muted/80 font-InterMedium">Privacidad</Text></Pressable>
         </View>
       </View>
     </SafeAreaView>

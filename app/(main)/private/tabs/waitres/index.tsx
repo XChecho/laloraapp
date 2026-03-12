@@ -3,7 +3,7 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   Image,
   Platform,
   Modal,
@@ -76,14 +76,13 @@ const TableCard = ({ table }: { table: Table }) => {
         </Text>
 
         {/* Action Button */}
-        <TouchableOpacity
+        <Pressable
           onPress={handleAction}
-          className={`mt-3 py-2.5 rounded-xl items-center justify-center ${
+          className={`mt-3 py-2.5 rounded-xl items-center justify-center active:opacity-70 ${
             isOccupied
               ? 'bg-gray-50 border border-gray-200'
               : 'bg-lora-primary'
           }`}
-          activeOpacity={0.7}
         >
           <Text
             className={`text-xs font-InterBold text-center ${
@@ -92,7 +91,7 @@ const TableCard = ({ table }: { table: Table }) => {
           >
             {isOccupied ? 'Ver Detalles' : 'Abrir Mesa'}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Modal de Pedido Guardado */}
@@ -110,9 +109,9 @@ const TableCard = ({ table }: { table: Table }) => {
                 <Text className="text-xl font-InterBold text-lora-text">Pedido {table.name}</Text>
                 <Text className="text-gray-500 text-sm">Productos en curso</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowOrderModal(false)}>
+              <Pressable onPress={() => setShowOrderModal(false)}>
                 <Ionicons name="close-circle" size={32} color="#94A3B8" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             <View className="space-y-3 mb-8">
@@ -131,16 +130,16 @@ const TableCard = ({ table }: { table: Table }) => {
               </View>
             </View>
 
-            <TouchableOpacity
+            <Pressable
               onPress={() => {
                 setShowOrderModal(false);
                 router.push(`/(main)/private/tabs/waitres/${table.id}`);
               }}
-              className="bg-lora-primary py-4 rounded-xl flex-row items-center justify-center mb-2"
+              className="bg-lora-primary py-4 rounded-xl flex-row items-center justify-center mb-2 active:opacity-70"
             >
               <Ionicons name="add-circle-outline" size={20} color="white" />
               <Text className="text-white font-InterBold text-base ml-2">Agregar más platos</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -153,13 +152,13 @@ const WaitresScreen = () => {
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
-        <TouchableOpacity className="p-1">
+        <Pressable className="p-1">
           <Ionicons name="menu" size={26} color="#1B2332" />
-        </TouchableOpacity>
+        </Pressable>
         <Text className="text-xl font-InterBold text-lora-text">Mis Mesas</Text>
-        <TouchableOpacity className="p-1">
+        <Pressable className="p-1">
           <Ionicons name="notifications-outline" size={24} color="#1B2332" />
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <Text className="px-5 text-sm font-InterMedium text-lora-primary mb-4">
         Restaurante La Lora

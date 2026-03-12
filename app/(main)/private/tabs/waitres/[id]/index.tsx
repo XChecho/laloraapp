@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   Image,
   Modal,
@@ -25,6 +25,35 @@ const CATEGORIES = [
 const ALACARTE_SUBCATS = ['Entradas', 'Res', 'Cerdo', 'Pollo', 'Pez y Mariscos', 'Pastas'];
 
 const COOKING_TERMS = ['Azul (Sellado)', 'Medio', '3/4 (Al punto)', 'Bien asado'];
+
+const shadowStyle = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  android: {
+    elevation: 3,
+  },
+  default: {
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+  }
+});
+
+const SubcatButton = memo(({ sub, activeSubcat, onPress }: { sub: string, activeSubcat: string, onPress: (sub: string) => void }) => (
+  <Pressable
+    onPress={() => onPress(sub)}
+    style={activeSubcat === sub ? shadowStyle : undefined}
+    className={`mr-3 px-6 py-3 rounded-2xl border ${
+      activeSubcat === sub ? 'bg-lora-primary border-lora-primary' : 'bg-white border-gray-200'
+    }`}
+  >
+    <Text className={`text-sm font-InterBold ${activeSubcat === sub ? 'text-white' : 'text-gray-500'}`}>
+      {sub}
+    </Text>
+  </Pressable>
+));
 
 const MenuScreen = () => {
   const { id } = useLocalSearchParams();
@@ -105,9 +134,9 @@ const MenuScreen = () => {
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
+        <Pressable onPress={() => router.back()} className="p-2">
           <Ionicons name="arrow-back" size={24} color="#1B2332" />
-        </TouchableOpacity>
+        </Pressable>
         <Text className="flex-1 text-center text-lg font-InterBold text-lora-text mr-10">
           Mesa {id}
         </Text>
@@ -116,7 +145,7 @@ const MenuScreen = () => {
       {/* Main Categories */}
       <View className="flex-row bg-white border-b border-gray-100">
         {CATEGORIES.map((cat) => (
-          <TouchableOpacity
+          <Pressable
             key={cat.id}
             onPress={() => setActiveCategory(cat.id)}
             className={`flex-1 items-center py-4 border-b-2 ${
@@ -126,7 +155,7 @@ const MenuScreen = () => {
             <Text className={`text-[10px] font-InterBold uppercase ${activeCategory === cat.id ? 'text-lora-primary' : 'text-gray-400'}`}>
               {cat.name}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
 
@@ -135,17 +164,12 @@ const MenuScreen = () => {
         <View className="bg-white border-b border-gray-100">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3">
             {ALACARTE_SUBCATS.map((sub) => (
-              <TouchableOpacity
+              <SubcatButton
                 key={sub}
-                onPress={() => setActiveSubcat(sub)}
-                className={`mr-3 px-6 py-3 rounded-2xl border ${
-                  activeSubcat === sub ? 'bg-lora-primary border-lora-primary shadow-md' : 'bg-white border-gray-200'
-                }`}
-              >
-                <Text className={`text-sm font-InterBold ${activeSubcat === sub ? 'text-white' : 'text-gray-500'}`}>
-                  {sub}
-                </Text>
-              </TouchableOpacity>
+                sub={sub}
+                activeSubcat={activeSubcat}
+                onPress={setActiveSubcat}
+              />
             ))}
           </ScrollView>
         </View>
@@ -154,7 +178,7 @@ const MenuScreen = () => {
       <ScrollView className="flex-1 px-3 pt-4">
         <View className="flex-row flex-wrap">
           {filteredItems.map((item) => (
-            <TouchableOpacity
+            <Pressable
               key={item.id}
               onPress={() => handleSelectItem(item)}
               disabled={!item.isAvailable}
@@ -168,7 +192,7 @@ const MenuScreen = () => {
                   {!item.isAvailable && <Text className="text-[10px] font-InterBold text-red-500 uppercase mt-1">Agotado</Text>}
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
       </ScrollView>
@@ -176,13 +200,14 @@ const MenuScreen = () => {
       {/* Footer */}
       {currentOrder.length > 0 && (
         <View className="p-4 bg-white border-t border-gray-100">
-          <TouchableOpacity
+          <Pressable
             onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/verify`)}
-            className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center shadow-lg"
+            style={shadowStyle}
+            className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70"
           >
             <Text className="text-white font-InterBold text-base mr-2">Verificar Pedido ({currentOrder.length})</Text>
             <Ionicons name="arrow-forward" size={20} color="white" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -197,7 +222,7 @@ const MenuScreen = () => {
               <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Proteína</Text>
               <View className="space-y-2 mb-6">
                 {MOCK_DB.proteins.map((p) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={p}
                     onPress={() => setLunchProtein(p)}
                     className={`flex-row items-center justify-between p-4 rounded-xl border ${lunchProtein === p ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
@@ -206,14 +231,14 @@ const MenuScreen = () => {
                     <View className={`w-6 h-6 rounded-full border-2 ${lunchProtein === p ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
                       {lunchProtein === p && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
 
               <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Bebida</Text>
               <View className="space-y-2 mb-6">
                 {MOCK_DB.lunchDrinks.map((d) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={d}
                     onPress={() => setLunchDrink(d)}
                     className={`flex-row items-center justify-between p-4 rounded-xl border ${lunchDrink === d ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
@@ -222,7 +247,7 @@ const MenuScreen = () => {
                     <View className={`w-6 h-6 rounded-full border-2 ${lunchDrink === d ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
                       {lunchDrink === d && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
 
@@ -235,16 +260,17 @@ const MenuScreen = () => {
                 onChangeText={setLunchNotes}
               />
 
-              <TouchableOpacity
+              <Pressable
                 onPress={() => handleConfirmOrder('lunch')}
                 disabled={!lunchProtein || !lunchDrink}
-                className={`py-4 rounded-2xl items-center shadow-md ${lunchProtein && lunchDrink ? 'bg-lora-primary' : 'bg-gray-300'}`}
+                style={shadowStyle}
+                className={`py-4 rounded-2xl items-center active:opacity-70 ${lunchProtein && lunchDrink ? 'bg-lora-primary' : 'bg-gray-300'}`}
               >
                 <Text className="text-white font-InterBold text-base">Agregar al Pedido</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowLunchModal(false)} className="py-4 items-center">
+              </Pressable>
+              <Pressable onPress={() => setShowLunchModal(false)} className="py-4 items-center">
                 <Text className="text-gray-400 font-InterBold">Cancelar</Text>
-              </TouchableOpacity>
+              </Pressable>
             </ScrollView>
           </View>
         </View>
@@ -259,7 +285,7 @@ const MenuScreen = () => {
             
             <View className="space-y-2 mb-6">
               {COOKING_TERMS.map((t) => (
-                <TouchableOpacity
+                <Pressable
                   key={t}
                   onPress={() => setTermSelection(t)}
                   className={`flex-row items-center justify-between p-4 rounded-xl border ${termSelection === t ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
@@ -268,7 +294,7 @@ const MenuScreen = () => {
                   <View className={`w-6 h-6 rounded-full border-2 ${termSelection === t ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
                     {termSelection === t && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
 
@@ -280,16 +306,16 @@ const MenuScreen = () => {
               onChangeText={setExtraNotes}
             />
 
-            <TouchableOpacity
+            <Pressable
               onPress={() => handleConfirmOrder('term')}
               disabled={!termSelection}
-              className={`py-4 rounded-2xl items-center ${termSelection ? 'bg-lora-primary' : 'bg-gray-300'}`}
+              className={`py-4 rounded-2xl items-center active:opacity-70 ${termSelection ? 'bg-lora-primary' : 'bg-gray-300'}`}
             >
               <Text className="text-white font-InterBold text-base">Confirmar y Agregar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowTermModal(false)} className="py-4 items-center">
+            </Pressable>
+            <Pressable onPress={() => setShowTermModal(false)} className="py-4 items-center">
               <Text className="text-gray-400 font-InterBold">Cancelar</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -311,12 +337,12 @@ const MenuScreen = () => {
             />
 
             <View className="flex-row space-x-3">
-              <TouchableOpacity onPress={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 py-4 rounded-xl items-center">
+              <Pressable onPress={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 py-4 rounded-xl items-center active:opacity-70">
                 <Text className="text-gray-500 font-InterBold">Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleConfirmOrder('simple')} className="flex-1 bg-lora-primary py-4 rounded-xl items-center">
+              </Pressable>
+              <Pressable onPress={() => handleConfirmOrder('simple')} className="flex-1 bg-lora-primary py-4 rounded-xl items-center active:opacity-70">
                 <Text className="text-white font-InterBold">Agregar</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>
