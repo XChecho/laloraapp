@@ -28,9 +28,11 @@ export interface Table {
   total: number;
   image: string;
   currentOrder: OrderItem[];
+  zone: 'SALON' | 'TERRAZA';
 }
 
 export const MOCK_DB = {
+  // ... (keep proteins, lunchDrinks, sauces)
   proteins: [
     'Res Asada', 'Cerdo Asado', 'Pollo Asado', 'Chuleta de Cerdo', 
     'Chuleta de Pollo', 'Tres Telas Sudada', 'Posta Sudada', 'Carne Molida', 'Bagre'
@@ -39,6 +41,7 @@ export const MOCK_DB = {
   sauces: ['Piña', 'Mora', 'De la Casa'],
   
   menu: [
+    // ... (keep menu as is)
     // ALMUERZO DEL DÍA
     { id: 'l1', name: 'Mondongo', category: 'almuerzo', price: 23000, isAvailable: true, requiresLunchFlow: true, image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400' },
     { id: 'l2', name: 'Frijoles', category: 'almuerzo', price: 23000, isAvailable: true, requiresLunchFlow: true, image: 'https://images.unsplash.com/photo-1594911772125-07fc7a2d8d9f?w=400' },
@@ -81,7 +84,11 @@ export const MOCK_DB = {
   ] as MenuItem[],
   
   tables: [
-    { id: 1, name: 'MESA 01', status: 'OCUPADA', total: 43000, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [] },
-    { id: 2, name: 'MESA 02', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400', currentOrder: [] },
+    { id: 1, name: 'MESA 01', status: 'OCUPADA', total: 45000, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [], zone: 'SALON' },
+    { id: 2, name: 'MESA 02', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400', currentOrder: [], zone: 'SALON' },
+    { id: 3, name: 'MESA 03', status: 'OCUPADA', total: 12500, image: 'https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=400', currentOrder: [], zone: 'SALON' },
+    { id: 4, name: 'MESA 04', status: 'OCUPADA', total: 88200, image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400', currentOrder: [], zone: 'SALON' },
+    { id: 5, name: 'MESA 05', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400', currentOrder: [], zone: 'TERRAZA' },
+    { id: 6, name: 'MESA 06', status: 'OCUPADA', total: 32000, image: 'https://images.unsplash.com/photo-1525610553991-2bede1a233e9?w=400', currentOrder: [], zone: 'TERRAZA' },
   ] as Table[]
 };
