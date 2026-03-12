@@ -124,7 +124,7 @@ const CashierScreen = () => {
       />
 
       {/* Footer Info */}
-      <View className="bg-white border-t border-gray-200 p-4">
+      <View className="bg-white border-t border-gray-200 p-4 pb-20">
         <View className="flex-row justify-between items-center mb-4">
           <View className="flex-row gap-4">
             <View className="flex-row items-center">

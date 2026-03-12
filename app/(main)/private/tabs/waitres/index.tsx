@@ -114,7 +114,7 @@ const WaitresScreen = () => {
       <ScrollView
         className="flex-1 px-3"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
         <View className="flex-row flex-wrap">
           {MOCK_DB.tables.map((table) => (
