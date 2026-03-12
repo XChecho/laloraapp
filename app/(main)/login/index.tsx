@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import logoLoraApp from '@assets/images/logo/logoLoraApp.png';
+import { useAuthStore } from '@src/store/useAuthStore';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -26,13 +27,18 @@ const LoginScreen = () => {
   const isEmailValid = isValidEmail(email);
   const isPasswordValid = password.length >= 6;
   const isFormValid = isEmailValid && isPasswordValid;
+  const login = useAuthStore((state) => state.login);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await login();
       router.replace('/private/tabs/waitres' as any);
-    }, 2000);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

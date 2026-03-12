@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { OrderItem } from '@/core/database/mockDb';
+import { OrderItem } from '@core/database/mockDb';
 
 interface MainStore {
   currentOrder: OrderItem[];
