@@ -1,20 +1,20 @@
-import React, { useState, memo } from 'react';
+import { MOCK_DB, MenuItem } from '@core/database/mockDb';
+import { formatCOP } from '@core/helper/validators';
+import { Ionicons } from '@expo/vector-icons';
+import { useMainStore } from '@store/useMainStore';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { memo, useState } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
   Image,
   Modal,
   Platform,
+  Pressable,
+  ScrollView,
+  Text,
   TextInput,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { MOCK_DB, MenuItem, OrderItem } from '@/core/database/mockDb';
-import { useMainStore } from '@/src/store/useMainStore';
-import { formatCOP } from '@/core/helper/validators';
 
 const CATEGORIES = [
   { id: 'almuerzo', name: 'Almuerzo del Día', icon: 'restaurant', subtitle: 'Día' },
@@ -45,9 +45,8 @@ const SubcatButton = memo(({ sub, activeSubcat, onPress }: { sub: string, active
   <Pressable
     onPress={() => onPress(sub)}
     style={activeSubcat === sub ? shadowStyle : undefined}
-    className={`mr-3 px-6 py-3 rounded-2xl border ${
-      activeSubcat === sub ? 'bg-lora-primary border-lora-primary' : 'bg-white border-gray-200'
-    }`}
+    className={`mr-3 px-6 py-3 rounded-2xl border ${activeSubcat === sub ? 'bg-lora-primary border-lora-primary' : 'bg-white border-gray-200'
+      }`}
   >
     <Text className={`text-sm font-InterBold ${activeSubcat === sub ? 'text-white' : 'text-gray-500'}`}>
       {sub}
@@ -59,10 +58,10 @@ const MenuScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { currentOrder, addItem } = useMainStore();
-  
+
   const [activeCategory, setActiveCategory] = useState<'almuerzo' | 'carta' | 'bebida'>('almuerzo');
   const [activeSubcat, setActiveSubcat] = useState('Entradas');
-  
+
   // Modals visibility
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [showLunchModal, setShowLunchModal] = useState(false);
@@ -148,9 +147,8 @@ const MenuScreen = () => {
           <Pressable
             key={cat.id}
             onPress={() => setActiveCategory(cat.id)}
-            className={`flex-1 items-center py-4 border-b-2 ${
-              activeCategory === cat.id ? 'border-lora-primary' : 'border-transparent'
-            }`}
+            className={`flex-1 items-center py-4 border-b-2 ${activeCategory === cat.id ? 'border-lora-primary' : 'border-transparent'
+              }`}
           >
             <Text className={`text-[10px] font-InterBold uppercase ${activeCategory === cat.id ? 'text-lora-primary' : 'text-gray-400'}`}>
               {cat.name}
@@ -217,7 +215,7 @@ const MenuScreen = () => {
           <View className="bg-white rounded-t-[40px] p-6 max-h-[90%]">
             <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
             <Text className="text-xl font-InterBold text-lora-text mb-6">Configurar Almuerzo: {selectedItem?.name}</Text>
-            
+
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Proteína</Text>
               <View className="space-y-2 mb-6">
@@ -282,7 +280,7 @@ const MenuScreen = () => {
           <View className="bg-white rounded-t-[40px] p-6">
             <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
             <Text className="text-xl font-InterBold text-lora-text mb-6">Término de Carne: {selectedItem?.name}</Text>
-            
+
             <View className="space-y-2 mb-6">
               {COOKING_TERMS.map((t) => (
                 <Pressable
@@ -327,7 +325,7 @@ const MenuScreen = () => {
             <Image source={{ uri: selectedItem?.image }} className="w-full h-40 rounded-2xl mb-4" />
             <Text className="text-lg font-InterBold text-lora-text mb-2">{selectedItem?.name}</Text>
             <Text className="text-sm font-InterBold text-lora-primary mb-6">{formatCOP(selectedItem?.price || 0)}</Text>
-            
+
             <TextInput
               className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm h-20 mb-6"
               placeholder="Notas (opcional)..."

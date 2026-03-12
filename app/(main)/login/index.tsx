@@ -1,17 +1,20 @@
+import { isValidEmail } from '@core/helper/validators';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  Pressable, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ActivityIndicator 
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { isValidEmail } from '../../../core/helper/validators';
-import { useRouter } from 'expo-router';
+
+import logoLoraApp from '@assets/images/logo/logoLoraApp.png';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -34,21 +37,18 @@ const LoginScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-lora-bg">
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-center px-6"
       >
         {/* Header / Logo Area */}
         <View className="items-center mb-8">
-          <View className="w-24 h-24 rounded-full bg-lora-dark items-center justify-center mb-4 border-2 border-[#81b29a] opacity-90">
-            {/* Placeholder for Logo */}
-            <View className="items-center">
-              <View className="w-6 h-6 border border-white rounded-full items-center justify-center">
-                <Text className="text-white text-xs font-InterLight">L</Text>
-              </View>
-              <Text className="text-[6px] text-white mt-1 uppercase tracking-widest text-center">La Lora</Text>
-              <Text className="text-[4px] text-white tracking-widest text-center">Padel & Court</Text>
-            </View>
+          <View className="w-28 h-28 rounded-full items-center justify-center mb-4 shadow-lg overflow-hidden">
+            <Image
+              source={logoLoraApp}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
           </View>
           <Text className="text-2xl font-InterBold text-lora-text mb-1">La Lora POS</Text>
           <Text className="text-sm font-InterMedium text-lora-primary">Gestión de Cancha y Restaurante</Text>
@@ -85,7 +85,7 @@ const LoginScreen = () => {
             <Text className="text-xs font-InterBold text-lora-text tracking-wider mb-2 uppercase">Contraseña</Text>
             <View className="flex-row items-center border border-lora-border rounded-2xl px-4 h-14 bg-white focus:border-lora-primary">
               <Ionicons name="lock-closed" size={20} color="#94A3B8" className="mr-3" />
-               <TextInput
+              <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
@@ -100,7 +100,7 @@ const LoginScreen = () => {
           </View>
 
           {/* Submit Button */}
-          <Pressable 
+          <Pressable
             className={`h-14 rounded-2xl items-center justify-center shadow-sm active:opacity-70 ${!isFormValid || isLoading ? 'bg-gray-400' : 'bg-lora-primary'}`}
             disabled={!isFormValid || isLoading}
             onPress={handleLogin}
@@ -125,7 +125,7 @@ const LoginScreen = () => {
               <Ionicons name="logo-google" size={20} color="#DB4437" className="mr-2" />
               <Text className="font-InterBold text-lora-text">Google</Text>
             </Pressable>
-            
+
             <Pressable className="flex-1 ml-4 flex-row items-center justify-center h-14 rounded-2xl border border-lora-border bg-[#0A66C2] active:opacity-70">
               <Ionicons name="logo-linkedin" size={20} color="#ffffff" className="mr-2" />
               <Text className="font-InterBold text-white">LinkedIn</Text>

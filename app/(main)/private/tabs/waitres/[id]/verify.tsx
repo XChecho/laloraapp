@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
-import { useMainStore } from '@/src/store/useMainStore';
-import { formatCOP } from '@/core/helper/validators';
+import { useMainStore } from '@src/store/useMainStore';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const VerifyOrderScreen = () => {
   const { id } = useLocalSearchParams();

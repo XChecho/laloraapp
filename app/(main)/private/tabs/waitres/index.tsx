@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  Image,
-  Platform,
-  Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatCOP } from '@/core/helper/validators';
+import { MOCK_DB, Table } from '@core/database/mockDb';
+import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { MOCK_DB, Table } from '@/core/database/mockDb';
+import React, { useState } from 'react';
+import {
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const cardShadow = Platform.select({
   ios: {
@@ -54,9 +54,8 @@ const TableCard = ({ table }: { table: Table }) => {
         />
         {/* Status Badge */}
         <View
-          className={`absolute top-2 right-2 px-3 py-1 rounded-full ${
-            isOccupied ? 'bg-red-500' : 'bg-gray-400'
-          }`}
+          className={`absolute top-2 right-2 px-3 py-1 rounded-full ${isOccupied ? 'bg-red-500' : 'bg-gray-400'
+            }`}
         >
           <Text className="text-white text-[10px] font-InterBold tracking-wider">
             {table.status}
@@ -68,9 +67,8 @@ const TableCard = ({ table }: { table: Table }) => {
       <View className="p-3">
         <Text className="text-base font-InterBold text-lora-text">{table.name}</Text>
         <Text
-          className={`text-sm font-InterBold mt-0.5 ${
-            isOccupied ? 'text-lora-primary' : 'text-gray-400'
-          }`}
+          className={`text-sm font-InterBold mt-0.5 ${isOccupied ? 'text-lora-primary' : 'text-gray-400'
+            }`}
         >
           {isOccupied ? formatCOP(table.total) : formatCOP(0)}
         </Text>
@@ -78,16 +76,14 @@ const TableCard = ({ table }: { table: Table }) => {
         {/* Action Button */}
         <Pressable
           onPress={handleAction}
-          className={`mt-3 py-2.5 rounded-xl items-center justify-center active:opacity-70 ${
-            isOccupied
+          className={`mt-3 py-2.5 rounded-xl items-center justify-center active:opacity-70 ${isOccupied
               ? 'bg-gray-50 border border-gray-200'
               : 'bg-lora-primary'
-          }`}
+            }`}
         >
           <Text
-            className={`text-xs font-InterBold text-center ${
-              isOccupied ? 'text-lora-text' : 'text-white'
-            }`}
+            className={`text-xs font-InterBold text-center ${isOccupied ? 'text-lora-text' : 'text-white'
+              }`}
           >
             {isOccupied ? 'Ver Detalles' : 'Abrir Mesa'}
           </Text>

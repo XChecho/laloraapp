@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { useFonts } from "expo-font";
-import { Stack, SplashScreen } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
 import { setBackgroundColorAsync } from "expo-system-ui";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -12,7 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
 
 //Helpers
-import { queryClient } from "@/core/helper/queryClient";
+import { queryClient } from "@core/helper/queryClient";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import "./global.css";
