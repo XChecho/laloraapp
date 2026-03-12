@@ -2,10 +2,9 @@ import { MOCK_DB, Table } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Image,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useModalStore } from '@store/useModalStore';
 
 const cardShadow = Platform.select({
   ios: {
@@ -29,11 +29,11 @@ const cardShadow = Platform.select({
 const TableCard = ({ table }: { table: Table }) => {
   const isOccupied = table.status === 'OCUPADA';
   const router = useRouter();
-  const [showOrderModal, setShowOrderModal] = useState(false);
+  const openModal = useModalStore(state => state.openModal);
 
   const handleAction = () => {
     if (isOccupied) {
-      setShowOrderModal(true);
+      openModal('ORDER_DETAILS', { tableId: table.id });
     } else {
       router.push(`/(main)/private/tabs/waitres/${table.id}`);
     }
@@ -89,56 +89,6 @@ const TableCard = ({ table }: { table: Table }) => {
           </Text>
         </Pressable>
       </View>
-
-      {/* Modal de Pedido Guardado */}
-      <Modal
-        visible={showOrderModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowOrderModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-[32px] p-6">
-            <View className="w-12 h-1 bg-gray-200 rounded-full self-center mb-6" />
-            <View className="flex-row justify-between items-center mb-6">
-              <View>
-                <Text className="text-xl font-InterBold text-lora-text">Pedido {table.name}</Text>
-                <Text className="text-gray-500 text-sm">Productos en curso</Text>
-              </View>
-              <Pressable onPress={() => setShowOrderModal(false)}>
-                <Ionicons name="close-circle" size={32} color="#94A3B8" />
-              </Pressable>
-            </View>
-
-            <View className="space-y-3 mb-8">
-              {table.currentOrder.map((item, index) => (
-                <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-50">
-                  <View>
-                    <Text className="font-InterSemiBold text-lora-text">{item.name}</Text>
-                    {item.term && <Text className="text-xs text-lora-primary font-InterMedium">{item.term}</Text>}
-                  </View>
-                  <Text className="font-InterBold text-lora-text">{formatCOP(item.price)}</Text>
-                </View>
-              ))}
-              <View className="flex-row justify-between items-center pt-4">
-                <Text className="text-lg font-InterBold text-lora-text">Total</Text>
-                <Text className="text-lg font-InterBold text-lora-primary">{formatCOP(table.total)}</Text>
-              </View>
-            </View>
-
-            <Pressable
-              onPress={() => {
-                setShowOrderModal(false);
-                router.push(`/(main)/private/tabs/waitres/${table.id}`);
-              }}
-              className="bg-lora-primary py-4 rounded-xl flex-row items-center justify-center mb-2 active:opacity-70"
-            >
-              <Ionicons name="add-circle-outline" size={20} color="white" />
-              <Text className="text-white font-InterBold text-base ml-2">Agregar más platos</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };

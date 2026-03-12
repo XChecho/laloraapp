@@ -19,6 +19,7 @@ export interface OrderItem extends MenuItem {
   protein?: string;
   sideDrink?: string;
   notes?: string;
+  requestedAt?: string; // ISO date
 }
 
 export interface Table {
@@ -29,6 +30,7 @@ export interface Table {
   image: string;
   currentOrder: OrderItem[];
   zone: 'SALON' | 'TERRAZA';
+  openedAt?: string; // ISO date
 }
 
 export const MOCK_DB = {
@@ -84,11 +86,33 @@ export const MOCK_DB = {
   ] as MenuItem[],
   
   tables: [
-    { id: 1, name: 'MESA 01', status: 'OCUPADA', total: 45000, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [], zone: 'SALON' },
+    { 
+      id: 1, 
+      name: 'MESA 01', 
+      status: 'OCUPADA', 
+      total: 45000, 
+      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', 
+      currentOrder: [
+        { id: 'r1', name: 'Churrasco', category: 'carta', subcategory: 'Res', price: 45000, isAvailable: true, instanceId: '1', requestedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString() }
+      ], 
+      zone: 'SALON',
+      openedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString()
+    },
     { id: 2, name: 'MESA 02', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400', currentOrder: [], zone: 'SALON' },
-    { id: 3, name: 'MESA 03', status: 'OCUPADA', total: 12500, image: 'https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=400', currentOrder: [], zone: 'SALON' },
-    { id: 4, name: 'MESA 04', status: 'OCUPADA', total: 88200, image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400', currentOrder: [], zone: 'SALON' },
+    { 
+      id: 3, 
+      name: 'MESA 03', 
+      status: 'OCUPADA', 
+      total: 12500, 
+      image: 'https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=400', 
+      currentOrder: [
+        { id: 'b5', name: 'Gaseosa', category: 'bebida', price: 3500, isAvailable: true, instanceId: '2', requestedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString() }
+      ], 
+      zone: 'SALON',
+      openedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString()
+    },
+    { id: 4, name: 'MESA 04', status: 'OCUPADA', total: 88200, image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400', currentOrder: [], zone: 'SALON', openedAt: new Date().toISOString() },
     { id: 5, name: 'MESA 05', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400', currentOrder: [], zone: 'TERRAZA' },
-    { id: 6, name: 'MESA 06', status: 'OCUPADA', total: 32000, image: 'https://images.unsplash.com/photo-1525610553991-2bede1a233e9?w=400', currentOrder: [], zone: 'TERRAZA' },
+    { id: 6, name: 'MESA 06', status: 'OCUPADA', total: 32000, image: 'https://images.unsplash.com/photo-1525610553991-2bede1a233e9?w=400', currentOrder: [], zone: 'TERRAZA', openedAt: new Date().toISOString() },
   ] as Table[]
 };

@@ -1,352 +1,144 @@
-import { MOCK_DB, MenuItem } from '@core/database/mockDb';
+import { MOCK_DB } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
-import { useMainStore } from '@store/useMainStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { memo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Image,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useModalStore } from '@store/useModalStore';
 
-const CATEGORIES = [
-  { id: 'almuerzo', name: 'Almuerzo del Día', icon: 'restaurant', subtitle: 'Día' },
-  { id: 'carta', name: 'A la Carta', icon: 'book' },
-  { id: 'bebida', name: 'Bebidas', icon: 'wine' },
-] as const;
+const getTimeElapsed = (dateString: string) => {
+    const start = new Date(dateString).getTime();
+    const now = new Date().getTime();
+    const diff = Math.floor((now - start) / 1000 / 60); // minutes
+    return `${diff} min`;
+};
 
-const ALACARTE_SUBCATS = ['Entradas', 'Res', 'Cerdo', 'Pollo', 'Pez y Mariscos', 'Pastas'];
-
-const COOKING_TERMS = ['Azul (Sellado)', 'Medio', '3/4 (Al punto)', 'Bien asado'];
-
-const shadowStyle = Platform.select({
-  ios: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  android: {
-    elevation: 3,
-  },
-  default: {
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  }
-});
-
-const SubcatButton = memo(({ sub, activeSubcat, onPress }: { sub: string, activeSubcat: string, onPress: (sub: string) => void }) => (
-  <Pressable
-    onPress={() => onPress(sub)}
-    style={activeSubcat === sub ? shadowStyle : undefined}
-    className={`mr-3 px-6 py-3 rounded-2xl border ${activeSubcat === sub ? 'bg-lora-primary border-lora-primary' : 'bg-white border-gray-200'
-      }`}
-  >
-    <Text className={`text-sm font-InterBold ${activeSubcat === sub ? 'text-white' : 'text-gray-500'}`}>
-      {sub}
-    </Text>
-  </Pressable>
-));
-
-const MenuScreen = () => {
+const TableDetailsScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { currentOrder, addItem } = useMainStore();
+  const openModal = useModalStore(state => state.openModal);
+  const [now, setNow] = useState(new Date());
 
-  const [activeCategory, setActiveCategory] = useState<'almuerzo' | 'carta' | 'bebida'>('almuerzo');
-  const [activeSubcat, setActiveSubcat] = useState('Entradas');
+  // Update timers every minute
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
-  // Modals visibility
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [showLunchModal, setShowLunchModal] = useState(false);
-  const [showTermModal, setShowTermModal] = useState(false);
-  const [showSauceModal, setShowSauceModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const table = MOCK_DB.tables.find(t => t.id === Number(id));
 
-  // Flow selections
-  const [lunchProtein, setLunchProtein] = useState('');
-  const [lunchDrink, setLunchDrink] = useState('');
-  const [lunchNotes, setLunchNotes] = useState('');
-  const [termSelection, setTermSelection] = useState('');
-  const [sauceSelection, setSauceSelection] = useState('');
-  const [extraNotes, setExtraNotes] = useState('');
+  if (!table) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center">
+        <Text className="font-InterBold text-lg">Mesa no encontrada</Text>
+        <Pressable onPress={() => router.back()} className="mt-4">
+            <Text className="text-lora-primary font-InterBold">Regresar</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
-  const filteredItems = MOCK_DB.menu.filter((item) => {
-    if (activeCategory === 'carta') {
-      return item.category === 'carta' && item.subcategory === activeSubcat;
-    }
-    return item.category === activeCategory;
-  });
-
-  const handleSelectItem = (item: MenuItem) => {
-    if (!item.isAvailable) return;
-    setSelectedItem(item);
-    setExtraNotes('');
-
-    if (item.requiresLunchFlow) {
-      setLunchProtein('');
-      setLunchDrink('');
-      setLunchNotes('');
-      setShowLunchModal(true);
-    } else if (item.requiresTerm) {
-      setTermSelection('');
-      setShowTermModal(true);
-    } else if (item.requiresSauce) {
-      setSauceSelection('');
-      setShowSauceModal(true);
-    } else {
-      setShowConfirmModal(true);
-    }
-  };
-
-  const handleConfirmOrder = (type: 'lunch' | 'term' | 'sauce' | 'simple') => {
-    if (!selectedItem) return;
-
-    const baseItem = {
-      ...selectedItem,
-      price: selectedItem.price + (selectedItem.surcharge || 0),
-    };
-
-    if (type === 'lunch') {
-      addItem({ ...baseItem, protein: lunchProtein, sideDrink: lunchDrink, notes: lunchNotes });
-      setShowLunchModal(false);
-    } else if (type === 'term') {
-      addItem({ ...baseItem, term: termSelection, notes: extraNotes });
-      setShowTermModal(false);
-    } else if (type === 'sauce') {
-      addItem({ ...baseItem, sauce: sauceSelection, notes: extraNotes });
-      setShowSauceModal(false);
-    } else {
-      addItem({ ...baseItem, notes: extraNotes });
-      setShowConfirmModal(false);
-    }
-    setSelectedItem(null);
+  const handleCloseTable = () => {
+    openModal('CONFIRMATION', {
+        title: 'Cerrar Mesa',
+        message: `¿Estás seguro de que deseas cerrar la ${table.name}? Total: ${formatCOP(table.total)}`,
+        onConfirm: () => {
+            console.log("Cerrando mesa...");
+            router.replace('/(main)/private/tabs/waitres' as any);
+        }
+    });
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
-        <Pressable onPress={() => router.back()} className="p-2">
+      <View className="bg-white px-5 py-4 flex-row items-center border-b border-gray-100">
+        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="#1B2332" />
         </Pressable>
-        <Text className="flex-1 text-center text-lg font-InterBold text-lora-text mr-10">
-          Mesa {id}
-        </Text>
-      </View>
-
-      {/* Main Categories */}
-      <View className="flex-row bg-white border-b border-gray-100">
-        {CATEGORIES.map((cat) => (
-          <Pressable
-            key={cat.id}
-            onPress={() => setActiveCategory(cat.id)}
-            className={`flex-1 items-center py-4 border-b-2 ${activeCategory === cat.id ? 'border-lora-primary' : 'border-transparent'
-              }`}
-          >
-            <Text className={`text-[10px] font-InterBold uppercase ${activeCategory === cat.id ? 'text-lora-primary' : 'text-gray-400'}`}>
-              {cat.name}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Large Subcategories */}
-      {activeCategory === 'carta' && (
-        <View className="bg-white border-b border-gray-100">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3">
-            {ALACARTE_SUBCATS.map((sub) => (
-              <SubcatButton
-                key={sub}
-                sub={sub}
-                activeSubcat={activeSubcat}
-                onPress={setActiveSubcat}
-              />
-            ))}
-          </ScrollView>
+        <View className="flex-1 ml-2">
+          <Text className="text-xl font-InterBold text-lora-text">{table.name}</Text>
+          <Text className="text-xs font-InterMedium text-lora-primary uppercase">
+            {table.status} • Abierta hace {table.openedAt ? getTimeElapsed(table.openedAt) : '0 min'}
+          </Text>
         </View>
-      )}
+        <Pressable 
+            onPress={handleCloseTable}
+            className="bg-red-50 px-4 py-2 rounded-xl"
+        >
+          <Text className="text-red-500 font-InterBold text-xs">Cerrar Mesa</Text>
+        </Pressable>
+      </View>
 
-      <ScrollView className="flex-1 px-3 pt-4">
-        <View className="flex-row flex-wrap">
-          {filteredItems.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => handleSelectItem(item)}
-              disabled={!item.isAvailable}
-              className="w-1/2 p-1.5"
-            >
-              <View className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                <Image source={{ uri: item.image }} className="w-full h-32" resizeMode="cover" />
-                <View className="p-3">
-                  <Text className="text-sm font-InterBold text-lora-text" numberOfLines={2}>{item.name}</Text>
-                  <Text className="text-xs font-InterBold text-lora-primary mt-1">{formatCOP(item.price)}</Text>
-                  {!item.isAvailable && <Text className="text-[10px] font-InterBold text-red-500 uppercase mt-1">Agotado</Text>}
+      <ScrollView className="flex-1 px-5 pt-6" showsVerticalScrollIndicator={false}>
+        <View className="flex-row justify-between items-end mb-6">
+            <View>
+                <Text className="text-sm font-InterBold text-gray-400 uppercase tracking-widest">Resumen de Pedido</Text>
+                <Text className="text-xs font-InterMedium text-gray-400 mt-1">
+                    {table.currentOrder.length} productos solicitados
+                </Text>
+            </View>
+            <View className="items-end">
+                <Text className="text-2xl font-InterBold text-lora-text">{formatCOP(table.total)}</Text>
+            </View>
+        </View>
+
+        {table.currentOrder.length > 0 ? (
+          <View className="space-y-4 mb-10">
+            {table.currentOrder.map((item, index) => (
+              <View key={index} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex-row items-center">
+                <View className="flex-1">
+                    <View className="flex-row items-center justify-between mb-1">
+                        <Text className="font-InterBold text-lora-text text-base">{item.name}</Text>
+                        <Text className="font-InterBold text-lora-primary">{formatCOP(item.price)}</Text>
+                    </View>
+                    
+                    {(item.protein || item.term || item.notes) && (
+                        <Text className="text-xs text-gray-500 font-InterMedium mb-2">
+                            {[item.protein, item.term, item.notes].filter(Boolean).join(' • ')}
+                        </Text>
+                    )}
+
+                    <View className="flex-row items-center">
+                        <Ionicons name="time-outline" size={14} color="#94A3B8" />
+                        <Text className="text-[11px] text-gray-400 font-InterBold ml-1 uppercase">
+                            Hace {item.requestedAt ? getTimeElapsed(item.requestedAt) : '0 min'}
+                        </Text>
+                        <View className="mx-2 w-1 h-1 rounded-full bg-gray-300" />
+                        <View className="bg-orange-100 px-2 py-0.5 rounded-full">
+                            <Text className="text-[9px] font-InterBold text-orange-600 uppercase">En preparación</Text>
+                        </View>
+                    </View>
                 </View>
               </View>
-            </Pressable>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : (
+          <View className="py-20 items-center justify-center">
+            <Ionicons name="receipt-outline" size={64} color="#E2E8F0" />
+            <Text className="text-gray-400 font-InterBold mt-4">No hay productos en esta mesa</Text>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Footer */}
-      {currentOrder.length > 0 && (
-        <View className="p-4 bg-white border-t border-gray-100">
-          <Pressable
-            onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/verify`)}
-            style={shadowStyle}
-            className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70"
-          >
-            <Text className="text-white font-InterBold text-base mr-2">Verificar Pedido ({currentOrder.length})</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
-          </Pressable>
-        </View>
-      )}
-
-      {/* Lunch Flow Modal */}
-      <Modal visible={showLunchModal} transparent animationType="slide">
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-[40px] p-6 max-h-[90%]">
-            <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
-            <Text className="text-xl font-InterBold text-lora-text mb-6">Configurar Almuerzo: {selectedItem?.name}</Text>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Proteína</Text>
-              <View className="space-y-2 mb-6">
-                {MOCK_DB.proteins.map((p) => (
-                  <Pressable
-                    key={p}
-                    onPress={() => setLunchProtein(p)}
-                    className={`flex-row items-center justify-between p-4 rounded-xl border ${lunchProtein === p ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
-                  >
-                    <Text className={`font-InterSemiBold ${lunchProtein === p ? 'text-lora-primary' : 'text-gray-700'}`}>{p}</Text>
-                    <View className={`w-6 h-6 rounded-full border-2 ${lunchProtein === p ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
-                      {lunchProtein === p && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Bebida</Text>
-              <View className="space-y-2 mb-6">
-                {MOCK_DB.lunchDrinks.map((d) => (
-                  <Pressable
-                    key={d}
-                    onPress={() => setLunchDrink(d)}
-                    className={`flex-row items-center justify-between p-4 rounded-xl border ${lunchDrink === d ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
-                  >
-                    <Text className={`font-InterSemiBold ${lunchDrink === d ? 'text-lora-primary' : 'text-gray-700'}`}>{d}</Text>
-                    <View className={`w-6 h-6 rounded-full border-2 ${lunchDrink === d ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
-                      {lunchDrink === d && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Notas Especiales</Text>
-              <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm h-24 mb-8"
-                placeholder="Ej: Sin arroz, sin papá, sin ensalada..."
-                multiline
-                value={lunchNotes}
-                onChangeText={setLunchNotes}
-              />
-
-              <Pressable
-                onPress={() => handleConfirmOrder('lunch')}
-                disabled={!lunchProtein || !lunchDrink}
-                style={shadowStyle}
-                className={`py-4 rounded-2xl items-center active:opacity-70 ${lunchProtein && lunchDrink ? 'bg-lora-primary' : 'bg-gray-300'}`}
-              >
-                <Text className="text-white font-InterBold text-base">Agregar al Pedido</Text>
-              </Pressable>
-              <Pressable onPress={() => setShowLunchModal(false)} className="py-4 items-center">
-                <Text className="text-gray-400 font-InterBold">Cancelar</Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Term Modal */}
-      <Modal visible={showTermModal} transparent animationType="slide">
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-[40px] p-6">
-            <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
-            <Text className="text-xl font-InterBold text-lora-text mb-6">Término de Carne: {selectedItem?.name}</Text>
-
-            <View className="space-y-2 mb-6">
-              {COOKING_TERMS.map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => setTermSelection(t)}
-                  className={`flex-row items-center justify-between p-4 rounded-xl border ${termSelection === t ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
-                >
-                  <Text className={`font-InterSemiBold ${termSelection === t ? 'text-lora-primary' : 'text-gray-700'}`}>{t}</Text>
-                  <View className={`w-6 h-6 rounded-full border-2 ${termSelection === t ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
-                    {termSelection === t && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm h-20 mb-8"
-              placeholder="Notas adicionales..."
-              multiline
-              value={extraNotes}
-              onChangeText={setExtraNotes}
-            />
-
-            <Pressable
-              onPress={() => handleConfirmOrder('term')}
-              disabled={!termSelection}
-              className={`py-4 rounded-2xl items-center active:opacity-70 ${termSelection ? 'bg-lora-primary' : 'bg-gray-300'}`}
-            >
-              <Text className="text-white font-InterBold text-base">Confirmar y Agregar</Text>
-            </Pressable>
-            <Pressable onPress={() => setShowTermModal(false)} className="py-4 items-center">
-              <Text className="text-gray-400 font-InterBold">Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Generic Confirmation Modal */}
-      <Modal visible={showConfirmModal} transparent animationType="fade">
-        <View className="flex-1 bg-black/60 justify-center p-6">
-          <View className="bg-white rounded-[32px] p-6 shadow-2xl">
-            <Image source={{ uri: selectedItem?.image }} className="w-full h-40 rounded-2xl mb-4" />
-            <Text className="text-lg font-InterBold text-lora-text mb-2">{selectedItem?.name}</Text>
-            <Text className="text-sm font-InterBold text-lora-primary mb-6">{formatCOP(selectedItem?.price || 0)}</Text>
-
-            <TextInput
-              className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm h-20 mb-6"
-              placeholder="Notas (opcional)..."
-              multiline
-              value={extraNotes}
-              onChangeText={setExtraNotes}
-            />
-
-            <View className="flex-row space-x-3">
-              <Pressable onPress={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 py-4 rounded-xl items-center active:opacity-70">
-                <Text className="text-gray-500 font-InterBold">Cancelar</Text>
-              </Pressable>
-              <Pressable onPress={() => handleConfirmOrder('simple')} className="flex-1 bg-lora-primary py-4 rounded-xl items-center active:opacity-70">
-                <Text className="text-white font-InterBold">Agregar</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Actions */}
+      <View className="p-6 bg-white border-t border-gray-100">
+        <Pressable
+          onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/menu` as any)}
+          className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70 shadow-sm"
+        >
+          <Ionicons name="add-circle" size={24} color="white" />
+          <Text className="text-white font-InterBold text-lg ml-2">Añadir Productos</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 };
 
-export default MenuScreen;
+export default TableDetailsScreen;

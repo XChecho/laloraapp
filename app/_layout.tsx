@@ -17,9 +17,13 @@ import { queryClient } from "@core/helper/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import "./global.css";
 
+//Components
+import { GeneralModals } from "@src/components/modals/generalModals";
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // ... rest of imports/state
 
   const [fontsLoaded, fontError] = useFonts({
     InterItalic: require("../src/assets/fonts/Inter_24pt-Italic.ttf"),
@@ -57,6 +61,7 @@ export default function RootLayout() {
       >
         <SafeAreaProvider>
           <Stack screenOptions={{ headerShown: false }} />
+          <GeneralModals />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>

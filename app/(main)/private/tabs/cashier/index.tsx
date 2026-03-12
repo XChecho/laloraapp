@@ -2,25 +2,29 @@ import { MOCK_DB, Table } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   Pressable,
-  ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50];
+import { useModalStore } from '@store/useModalStore';
 
 const TableCard = ({ table }: { table: Table }) => {
   const isOccupied = table.status === 'OCUPADA';
   const router = useRouter();
+  const openModal = useModalStore(state => state.openModal);
+
+  const handleCloseTable = () => {
+    openModal('CONFIRMATION', {
+        title: 'Cerrar Mesa',
+        message: `¿Estás seguro de que deseas cerrar la cuenta de la ${table.name} por un valor de ${formatCOP(table.total)}?`,
+        onConfirm: () => Alert.alert("Éxito", "Mesa cerrada correctamente.")
+    });
+  };
 
   return (
     <View className={`bg-white rounded-2xl p-4 mb-4 border-2 ${isOccupied ? 'border-red-500' : 'border-teal-500'} shadow-sm`}>
@@ -51,7 +55,10 @@ const TableCard = ({ table }: { table: Table }) => {
             >
               <Text className="text-lora-text font-InterBold text-sm">Detalles</Text>
             </Pressable>
-            <Pressable className="flex-1 bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70">
+            <Pressable 
+                className="flex-1 bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
+                onPress={handleCloseTable}
+            >
               <Text className="text-white font-InterBold text-sm">Cerrar</Text>
             </Pressable>
           </>
@@ -68,94 +75,9 @@ const TableCard = ({ table }: { table: Table }) => {
   );
 };
 
-const CajaModal = ({ visible, onClose, type }: { visible: boolean, onClose: () => void, type: 'ABRIR' | 'CERRAR' }) => {
-  const [counts, setCounts] = useState<{ [key: number]: string }>({});
-  const [nequi, setNequi] = useState('');
-
-  const totalDenominations = useMemo(() => {
-    return Object.entries(counts).reduce((acc, [denom, count]) => {
-      const val = parseInt(count) || 0;
-      return acc + (parseInt(denom) * val);
-    }, 0);
-  }, [counts]);
-
-  const totalGeneral = totalDenominations + (parseInt(nequi) || 0);
-
-  const handleSave = () => {
-    Alert.alert("Éxito", `Caja ${type === 'ABRIR' ? 'abierta' : 'cerrada'} con éxito. Total: ${formatCOP(totalGeneral)}`);
-    onClose();
-  };
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View className="flex-1 bg-black/50 justify-end">
-        <SafeAreaView edges={['top']} className="bg-white rounded-t-[32px] h-[90%]">
-          <View className="p-6 flex-1">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-2xl font-InterBold text-lora-text">{type === 'ABRIR' ? 'Abrir Caja' : 'Cerrar Caja'}</Text>
-              <Pressable onPress={onClose}>
-                <Ionicons name="close-circle" size={32} color="#94A3B8" />
-              </Pressable>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text className="text-sm font-InterBold text-gray-500 mb-4 uppercase tracking-wider">Efectivo en Base</Text>
-              
-              <View className="bg-gray-50 rounded-2xl p-4 mb-6">
-                {DENOMINATIONS.map((denom) => (
-                  <View key={denom} className="flex-row items-center justify-between py-2 border-b border-gray-200/50">
-                    <Text className="font-InterSemiBold text-lora-text w-24">{formatCOP(denom)}</Text>
-                    <TextInput
-                      className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1 text-right font-InterBold"
-                      keyboardType="numeric"
-                      placeholder="0"
-                      value={counts[denom] || ''}
-                      onChangeText={(val) => setCounts({ ...counts, [denom]: val })}
-                    />
-                    <Text className="w-28 text-right font-InterBold text-lora-primary ml-2">
-                      {formatCOP((parseInt(counts[denom]) || 0) * denom)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              <Text className="text-sm font-InterBold text-gray-500 mb-2 uppercase tracking-wider">Otros Medios</Text>
-              <View className="bg-gray-50 rounded-2xl p-4 mb-6">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-InterSemiBold text-lora-text">Saldo Nequi</Text>
-                  <TextInput
-                    className="w-40 bg-white border border-gray-200 rounded-lg px-3 py-2 text-right font-InterBold"
-                    keyboardType="numeric"
-                    placeholder="$ 0"
-                    value={nequi}
-                    onChangeText={setNequi}
-                  />
-                </View>
-              </View>
-            </ScrollView>
-
-            <View className="pt-4 border-t border-gray-100">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-lg font-InterBold text-gray-500">Total en Caja</Text>
-                <Text className="text-2xl font-InterBold text-lora-primary">{formatCOP(totalGeneral)}</Text>
-              </View>
-              <Pressable 
-                onPress={handleSave}
-                className="bg-lora-primary py-4 rounded-2xl items-center justify-center active:opacity-70"
-              >
-                <Text className="text-white font-InterBold text-lg">Confirmar {type === 'ABRIR' ? 'Apertura' : 'Cierre'}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
-    </Modal>
-  );
-};
-
 const CashierScreen = () => {
   const [activeZone, setActiveZone] = useState<'SALON' | 'TERRAZA'>('SALON');
-  const [cajaModal, setCajaModal] = useState<{ visible: boolean, type: 'ABRIR' | 'CERRAR' }>({ visible: false, type: 'ABRIR' });
+  const openModal = useModalStore(state => state.openModal);
 
   const filteredTables = MOCK_DB.tables.filter(t => t.zone === activeZone);
   const totalSales = MOCK_DB.tables.reduce((acc, t) => acc + t.total, 0);
@@ -197,7 +119,7 @@ const CashierScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <TableCard table={item} />}
         contentContainerStyle={{ padding: 16 }}
-        numColumns={1} // Replaced grid with list for better mobile interaction as per design feel
+        numColumns={1}
         showsVerticalScrollIndicator={false}
       />
 
@@ -222,25 +144,19 @@ const CashierScreen = () => {
 
         <View className="flex-row gap-3">
           <Pressable 
-            onPress={() => setCajaModal({ visible: true, type: 'ABRIR' })}
+            onPress={() => openModal('CASHIER', { type: 'ABRIR' })}
             className="flex-1 bg-white border border-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
           >
             <Text className="text-lora-primary font-InterBold">Abrir Caja</Text>
           </Pressable>
           <Pressable 
-            onPress={() => setCajaModal({ visible: true, type: 'CERRAR' })}
+            onPress={() => openModal('CASHIER', { type: 'CERRAR' })}
             className="flex-1 bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
           >
             <Text className="text-white font-InterBold">Cerrar Caja</Text>
           </Pressable>
         </View>
       </View>
-
-      <CajaModal 
-        visible={cajaModal.visible} 
-        onClose={() => setCajaModal({ ...cajaModal, visible: false })} 
-        type={cajaModal.type} 
-      />
     </SafeAreaView>
   );
 };
