@@ -1,89 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   Platform,
+  Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatCOP } from '@/core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
-
-type TableStatus = 'OCUPADA' | 'LIBRE';
-
-interface TableData {
-  id: number;
-  name: string;
-  status: TableStatus;
-  total: number;
-  image: string;
-}
-
-const MOCK_TABLES: TableData[] = [
-  {
-    id: 1,
-    name: 'MESA 01',
-    status: 'OCUPADA',
-    total: 45000,
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-  },
-  {
-    id: 2,
-    name: 'MESA 02',
-    status: 'LIBRE',
-    total: 0,
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop',
-  },
-  {
-    id: 3,
-    name: 'MESA 03',
-    status: 'OCUPADA',
-    total: 120500,
-    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop',
-  },
-  {
-    id: 4,
-    name: 'MESA 04',
-    status: 'LIBRE',
-    total: 0,
-    image: 'https://images.unsplash.com/photo-1550966871-3ed3cdb51f3a?w=400&h=300&fit=crop',
-  },
-  {
-    id: 5,
-    name: 'MESA 05',
-    status: 'LIBRE',
-    total: 0,
-    image: 'https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=400&h=300&fit=crop',
-  },
-  {
-    id: 6,
-    name: 'MESA 06',
-    status: 'OCUPADA',
-    total: 28750,
-    image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=300&fit=crop',
-  },
-];
+import { useRouter } from 'expo-router';
+import { MOCK_DB, Table } from '@/core/database/mockDb';
 
 const cardShadow = Platform.select({
   ios: {
-    shadowColor: '#1B2332',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
   android: {
-    elevation: 5,
+    elevation: 3,
   },
 });
 
-const TableCard = ({ table }: { table: TableData }) => {
+const TableCard = ({ table }: { table: Table }) => {
   const isOccupied = table.status === 'OCUPADA';
+  const router = useRouter();
+  const [showOrderModal, setShowOrderModal] = useState(false);
+
+  const handleAction = () => {
+    if (isOccupied) {
+      setShowOrderModal(true);
+    } else {
+      router.push(`/(main)/private/tabs/waitres/${table.id}`);
+    }
+  };
 
   return (
     <View
-      className="flex-1 bg-white rounded-2xl overflow-hidden border border-lora-primary mx-2 mb-4"
+      className="flex-1 bg-white rounded-2xl overflow-hidden border border-gray-200 mx-2 mb-4"
       style={cardShadow}
     >
       {/* Image */}
@@ -92,12 +50,12 @@ const TableCard = ({ table }: { table: TableData }) => {
           source={{ uri: table.image }}
           className="w-full h-full"
           resizeMode="cover"
-          style={isOccupied ? {} : { opacity: 0.6 }}
+          style={isOccupied ? {} : { opacity: 0.4 }}
         />
         {/* Status Badge */}
         <View
           className={`absolute top-2 right-2 px-3 py-1 rounded-full ${
-            isOccupied ? 'bg-red-500' : 'bg-lora-primary'
+            isOccupied ? 'bg-red-500' : 'bg-gray-400'
           }`}
         >
           <Text className="text-white text-[10px] font-InterBold tracking-wider">
@@ -111,7 +69,7 @@ const TableCard = ({ table }: { table: TableData }) => {
         <Text className="text-base font-InterBold text-lora-text">{table.name}</Text>
         <Text
           className={`text-sm font-InterBold mt-0.5 ${
-            isOccupied ? 'text-lora-primary' : 'text-lora-text-muted'
+            isOccupied ? 'text-lora-primary' : 'text-gray-400'
           }`}
         >
           {isOccupied ? formatCOP(table.total) : formatCOP(0)}
@@ -119,9 +77,10 @@ const TableCard = ({ table }: { table: TableData }) => {
 
         {/* Action Button */}
         <TouchableOpacity
+          onPress={handleAction}
           className={`mt-3 py-2.5 rounded-xl items-center justify-center ${
             isOccupied
-              ? 'bg-white border border-lora-border'
+              ? 'bg-gray-50 border border-gray-200'
               : 'bg-lora-primary'
           }`}
           activeOpacity={0.7}
@@ -131,17 +90,67 @@ const TableCard = ({ table }: { table: TableData }) => {
               isOccupied ? 'text-lora-text' : 'text-white'
             }`}
           >
-            {isOccupied ? 'Ver Detalles /\nAgregar' : 'Abrir Mesa'}
+            {isOccupied ? 'Ver Detalles' : 'Abrir Mesa'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal de Pedido Guardado */}
+      <Modal
+        visible={showOrderModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowOrderModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-[32px] p-6">
+            <View className="w-12 h-1 bg-gray-200 rounded-full self-center mb-6" />
+            <View className="flex-row justify-between items-center mb-6">
+              <View>
+                <Text className="text-xl font-InterBold text-lora-text">Pedido {table.name}</Text>
+                <Text className="text-gray-500 text-sm">Productos en curso</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowOrderModal(false)}>
+                <Ionicons name="close-circle" size={32} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="space-y-3 mb-8">
+              {table.currentOrder.map((item, index) => (
+                <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-50">
+                  <View>
+                    <Text className="font-InterSemiBold text-lora-text">{item.name}</Text>
+                    {item.term && <Text className="text-xs text-lora-primary font-InterMedium">{item.term}</Text>}
+                  </View>
+                  <Text className="font-InterBold text-lora-text">{formatCOP(item.price)}</Text>
+                </View>
+              ))}
+              <View className="flex-row justify-between items-center pt-4">
+                <Text className="text-lg font-InterBold text-lora-text">Total</Text>
+                <Text className="text-lg font-InterBold text-lora-primary">{formatCOP(table.total)}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowOrderModal(false);
+                router.push(`/(main)/private/tabs/waitres/${table.id}`);
+              }}
+              className="bg-lora-primary py-4 rounded-xl flex-row items-center justify-center mb-2"
+            >
+              <Ionicons name="add-circle-outline" size={20} color="white" />
+              <Text className="text-white font-InterBold text-base ml-2">Agregar más platos</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const WaitresScreen = () => {
   return (
-    <SafeAreaView className="flex-1 bg-lora-bg">
+    <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
         <TouchableOpacity className="p-1">
@@ -163,7 +172,7 @@ const WaitresScreen = () => {
         contentContainerStyle={{ paddingBottom: 24 }}
       >
         <View className="flex-row flex-wrap">
-          {MOCK_TABLES.map((table) => (
+          {MOCK_DB.tables.map((table) => (
             <View key={table.id} className="w-1/2">
               <TableCard table={table} />
             </View>

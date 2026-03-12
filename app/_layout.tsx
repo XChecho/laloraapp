@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { useFonts } from "expo-font";
-import { Slot, SplashScreen } from "expo-router";
+import { Stack, SplashScreen } from "expo-router";
 import { setBackgroundColorAsync } from "expo-system-ui";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -56,7 +56,7 @@ export default function RootLayout() {
         }}
       >
         <SafeAreaProvider>
-          <Slot />
+          <Stack screenOptions={{ headerShown: false }} />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
