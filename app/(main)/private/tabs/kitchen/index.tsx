@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useKitchenStore, KitchenOrder, KitchenItem } from '../../../../../src/store/useKitchenStore';
+import React, { useEffect, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KitchenItem, KitchenOrder, useKitchenStore } from '../../../../../src/store/useKitchenStore';
 
 const KitchenScreen = () => {
   const [activeTab, setActiveTab] = useState<'ACTIVOS' | 'LISTOS'>('ACTIVOS');
@@ -13,7 +13,7 @@ const KitchenScreen = () => {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-slate-50">
       {/* Header */}
       <View className="flex-row items-center justify-between bg-white border-b border-slate-200 p-4 shadow-sm">
         <View className="flex-row items-center gap-4">
@@ -59,7 +59,7 @@ const KitchenScreen = () => {
       </View>
 
       {/* Main Content Grid */}
-      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 20 }}>
         <View className="flex-row flex-wrap gap-6 justify-between">
           {filteredOrders.length === 0 ? (
             <View className="flex-1 items-center justify-center py-20 w-full">
@@ -183,14 +183,14 @@ const OrderItemRow = ({
 }) => {
   const isLunchMenu = item.category === 'almuerzo';
   const hasSopa = isLunchMenu && item.name !== 'Bandeja (Sin Sopa)';
-  
+
   // Custom Lunch Flow
   if (isLunchMenu) {
     return (
       <View className="flex-col gap-2 border-b border-slate-100 pb-2">
         {hasSopa && (
-          <Pressable 
-            disabled={!isActiveTab || item.sopaStatus === 'READY'} 
+          <Pressable
+            disabled={!isActiveTab || item.sopaStatus === 'READY'}
             onPress={onMarkSopaReady}
             className={`flex-row items-start gap-3 ${item.sopaStatus === 'READY' ? 'opacity-40' : ''}`}
           >
@@ -203,8 +203,8 @@ const OrderItemRow = ({
             {item.sopaStatus === 'READY' && <MaterialIcons name="check-circle" size={20} color="#16a34a" />}
           </Pressable>
         )}
-        <Pressable 
-          disabled={!isActiveTab || item.bandejaStatus === 'READY'} 
+        <Pressable
+          disabled={!isActiveTab || item.bandejaStatus === 'READY'}
           onPress={onMarkBandejaReady}
           className={`flex-row items-start gap-3 ${item.bandejaStatus === 'READY' ? 'opacity-40' : ''}`}
         >
@@ -227,8 +227,8 @@ const OrderItemRow = ({
 
   // Regular Item Flow
   return (
-    <Pressable 
-      disabled={!isActiveTab || item.status === 'READY'} 
+    <Pressable
+      disabled={!isActiveTab || item.status === 'READY'}
       onPress={onMarkReady}
       className={`flex-col gap-1 border-b border-slate-100 pb-2 ${item.status === 'READY' ? 'opacity-40' : ''}`}
     >
@@ -238,7 +238,7 @@ const OrderItemRow = ({
           <Text className={`text-lg font-semibold text-slate-800 uppercase ${item.status === 'READY' ? 'line-through' : ''}`}>
             {item.name}
           </Text>
-          
+
           <View className="flex-row flex-wrap gap-2 mt-1">
             {(item.requiresTerm || item.subcategory === 'Res') && item.term && (
               <Text className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">

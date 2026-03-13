@@ -1,6 +1,7 @@
 import { MOCK_DB, Table } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
+import { useModalStore } from '@store/useModalStore';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -12,7 +13,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useModalStore } from '@store/useModalStore';
 
 const cardShadow = Platform.select({
   ios: {
@@ -77,8 +77,8 @@ const TableCard = ({ table }: { table: Table }) => {
         <Pressable
           onPress={handleAction}
           className={`mt-3 py-2.5 rounded-xl items-center justify-center active:opacity-70 ${isOccupied
-              ? 'bg-gray-50 border border-gray-200'
-              : 'bg-lora-primary'
+            ? 'bg-gray-50 border border-gray-200'
+            : 'bg-lora-primary'
             }`}
         >
           <Text
@@ -95,7 +95,7 @@ const TableCard = ({ table }: { table: Table }) => {
 
 const WaitresScreen = () => {
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
         <Pressable className="p-1">
@@ -114,7 +114,7 @@ const WaitresScreen = () => {
       <ScrollView
         className="flex-1 px-3"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 10 }}
       >
         <View className="flex-row flex-wrap">
           {MOCK_DB.tables.map((table) => (

@@ -1,17 +1,23 @@
 import { MOCK_DB, Table } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
+import { useModalStore } from '@store/useModalStore';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Platform,
   Pressable,
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useModalStore } from '@store/useModalStore';
 
 const TableCard = ({ table }: { table: Table }) => {
   const isOccupied = table.status === 'OCUPADA';
@@ -20,9 +26,9 @@ const TableCard = ({ table }: { table: Table }) => {
 
   const handleCloseTable = () => {
     openModal('CONFIRMATION', {
-        title: 'Cerrar Mesa',
-        message: `¿Estás seguro de que deseas cerrar la cuenta de la ${table.name} por un valor de ${formatCOP(table.total)}?`,
-        onConfirm: () => Alert.alert("Éxito", "Mesa cerrada correctamente.")
+      title: 'Cerrar Mesa',
+      message: `¿Estás seguro de que deseas cerrar la cuenta de la ${table.name} por un valor de ${formatCOP(table.total)}?`,
+      onConfirm: () => Alert.alert("Éxito", "Mesa cerrada correctamente.")
     });
   };
 
@@ -49,21 +55,21 @@ const TableCard = ({ table }: { table: Table }) => {
       <View className="flex-row gap-2">
         {isOccupied ? (
           <>
-            <Pressable 
+            <Pressable
               className="flex-1 bg-gray-100 py-3 rounded-xl items-center justify-center active:opacity-70"
               onPress={() => router.push(`/(main)/private/tabs/waitres/${table.id}`)}
             >
               <Text className="text-lora-text font-InterBold text-sm">Detalles</Text>
             </Pressable>
-            <Pressable 
-                className="flex-1 bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
-                onPress={handleCloseTable}
+            <Pressable
+              className="flex-1 bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
+              onPress={handleCloseTable}
             >
               <Text className="text-white font-InterBold text-sm">Cerrar</Text>
             </Pressable>
           </>
         ) : (
-          <Pressable 
+          <Pressable
             className="w-full bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
             onPress={() => router.push(`/(main)/private/tabs/waitres/${table.id}`)}
           >
@@ -77,7 +83,46 @@ const TableCard = ({ table }: { table: Table }) => {
 
 const CashierScreen = () => {
   const [activeZone, setActiveZone] = useState<'SALON' | 'TERRAZA'>('SALON');
+  const [isExpanded, setIsExpanded] = useState(true);
   const openModal = useModalStore(state => state.openModal);
+
+  // Animation values
+  const buttonsHeight = useSharedValue(1); // 1 = expanded, 0 = collapsed
+  const scrollOffset = useRef(0);
+
+  const animatedButtonsStyle = useAnimatedStyle(() => {
+    return {
+      height: withTiming(buttonsHeight.value * 55, { duration: 300 }), // Reduced from 70
+      opacity: withTiming(buttonsHeight.value, { duration: 250 }),
+      overflow: 'hidden',
+      marginTop: withTiming(buttonsHeight.value * 12, { duration: 300 }),
+    };
+  });
+
+  const animatedIconStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ rotate: withTiming(buttonsHeight.value === 1 ? '0deg' : '180deg', { duration: 300 }) }],
+    };
+  });
+
+  const toggleExpand = () => {
+    const newValue = buttonsHeight.value === 1 ? 0 : 1;
+    buttonsHeight.value = newValue;
+    setIsExpanded(newValue === 1);
+  };
+
+  const handleScroll = (event: any) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const direction = currentOffset > scrollOffset.current ? 'down' : 'up';
+
+    // Auto-collapse only on scroll down
+    if (direction === 'down' && currentOffset > 50 && buttonsHeight.value === 1) {
+      buttonsHeight.value = 0;
+      setIsExpanded(false);
+    }
+    // We don't auto-expand on scroll up, per request
+    scrollOffset.current = currentOffset;
+  };
 
   const filteredTables = MOCK_DB.tables.filter(t => t.zone === activeZone);
   const totalSales = MOCK_DB.tables.reduce((acc, t) => acc + t.total, 0);
@@ -85,7 +130,7 @@ const CashierScreen = () => {
   const freeCount = MOCK_DB.tables.filter(t => t.status === 'LIBRE').length;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="bg-white px-5 py-4 flex-row justify-between items-center border-b border-gray-200">
         <View>
@@ -99,13 +144,13 @@ const CashierScreen = () => {
 
       {/* Zone Tabs */}
       <View className="bg-white px-5 flex-row border-b border-gray-200">
-        <Pressable 
+        <Pressable
           onPress={() => setActiveZone('SALON')}
           className={`py-3 mr-6 border-b-4 ${activeZone === 'SALON' ? 'border-lora-primary' : 'border-transparent'}`}
         >
           <Text className={`font-InterBold ${activeZone === 'SALON' ? 'text-lora-primary' : 'text-gray-400'}`}>Salón Principal</Text>
         </Pressable>
-        <Pressable 
+        <Pressable
           onPress={() => setActiveZone('TERRAZA')}
           className={`py-3 border-b-4 ${activeZone === 'TERRAZA' ? 'border-lora-primary' : 'border-transparent'}`}
         >
@@ -118,44 +163,58 @@ const CashierScreen = () => {
         data={filteredTables}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <TableCard table={item} />}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 150 : 80 }}
         numColumns={1}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
 
-      {/* Footer Info */}
-      <View className="bg-white border-t border-gray-200 p-4 pb-20">
-        <View className="flex-row justify-between items-center mb-4">
-          <View className="flex-row gap-4">
+      {/* Footer Info Fixed with collapsible buttons */}
+      <View className={`bg-white border-t border-gray-200 p-4 absolute bottom-0 left-0 right-0 ${Platform.OS === 'ios' ? 'pb-28' : 'pb-4'}`}>
+        <View className="flex-row justify-between items-center">
+          <View className="flex-column gap-4">
             <View className="flex-row items-center">
               <View className="w-3 h-3 rounded-full bg-red-500 mr-2" />
-              <Text className="text-xs font-InterBold text-gray-600">{occupiedCount} Ocupadas</Text>
+              <Text className="text-xs font-InterBold text-gray-600">{occupiedCount} <Text className="hidden sm:inline">Ocupadas</Text></Text>
             </View>
             <View className="flex-row items-center">
               <View className="w-3 h-3 rounded-full bg-teal-500 mr-2" />
-              <Text className="text-xs font-InterBold text-gray-600">{freeCount} Libres</Text>
+              <Text className="text-xs font-InterBold text-gray-600">{freeCount} <Text className="hidden sm:inline">Libres</Text></Text>
             </View>
           </View>
-          <View className="bg-lora-primary/5 px-4 py-2 rounded-full items-end">
-            <Text className="text-[10px] font-InterBold text-gray-400 uppercase">Venta del día</Text>
-            <Text className="text-lg font-InterBold text-lora-primary">{formatCOP(totalSales)}</Text>
+
+          <View className="flex-row items-center gap-3">
+            <View className="bg-lora-primary/5 px-4 py-2 rounded-full items-end">
+              <Text className="text-[9px] font-InterBold text-gray-400 uppercase leading-tight">Venta del día</Text>
+              <Text className="text-lg font-InterBold text-lora-primary leading-tight">{formatCOP(totalSales)}</Text>
+            </View>
+
+            <Pressable
+              onPress={toggleExpand}
+              className="bg-gray-100 p-2 rounded-full border border-gray-200"
+            >
+              <Animated.View style={animatedIconStyle}>
+                <Ionicons name="chevron-down" size={20} color="#64748b" />
+              </Animated.View>
+            </Pressable>
           </View>
         </View>
 
-        <View className="flex-row gap-3">
-          <Pressable 
+        <Animated.View style={animatedButtonsStyle} className="flex-row gap-3">
+          <Pressable
             onPress={() => openModal('CASHIER', { type: 'ABRIR' })}
-            className="flex-1 bg-white border border-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
+            className="flex-1 bg-white border border-lora-primary py-2 rounded-xl items-center justify-center active:opacity-70"
           >
-            <Text className="text-lora-primary font-InterBold">Abrir Caja</Text>
+            <Text className={`text-lora-primary font-InterBold ${Platform.OS === 'ios' ? 'text-base' : 'text-sm'}`}>Abrir Caja</Text>
           </Pressable>
-          <Pressable 
+          <Pressable
             onPress={() => openModal('CASHIER', { type: 'CERRAR' })}
-            className="flex-1 bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
+            className="flex-1 bg-lora-primary py-2 rounded-xl items-center justify-center active:opacity-70"
           >
-            <Text className="text-white font-InterBold">Cerrar Caja</Text>
+            <Text className={`text-white font-InterBold ${Platform.OS === 'ios' ? 'text-base' : 'text-sm'}`}>Cerrar Caja</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
