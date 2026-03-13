@@ -128,7 +128,7 @@ const TableDetailsScreen = () => {
       </ScrollView>
 
       {/* Actions */}
-      <View className="p-6 bg-white border-t border-gray-100">
+      <View className="px-6 pt-6 pb-12 bg-white border-t border-gray-100">
         <Pressable
           onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/menu` as any)}
           className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70 shadow-sm"

@@ -197,7 +197,7 @@ const MenuScreen = () => {
 
       {/* Footer */}
       {currentOrder.length > 0 && (
-        <View className="p-4 bg-white border-t border-gray-100">
+        <View className="px-4 pt-4 pb-12 bg-white border-t border-gray-100">
           <Pressable
             onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/verify`)}
             style={shadowStyle}

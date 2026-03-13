@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Pressable, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useKitchenStore, KitchenOrder, KitchenItem } from '../../../../../src/store/useKitchenStore';
 
@@ -29,9 +30,9 @@ const KitchenScreen = () => {
             <Text className="text-sm font-bold text-green-600">Sistema Online</Text>
             <Text className="text-xs text-slate-400">Última sinc: Ahora</Text>
           </View>
-          <TouchableOpacity className="flex size-12 items-center justify-center rounded-xl bg-slate-100">
+          <Pressable className="flex size-12 items-center justify-center rounded-xl bg-slate-100">
             <MaterialIcons name="refresh" size={24} color="#0f172a" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
@@ -58,7 +59,7 @@ const KitchenScreen = () => {
       </View>
 
       {/* Main Content Grid */}
-      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 80 }}>
         <View className="flex-row flex-wrap gap-6 justify-between">
           {filteredOrders.length === 0 ? (
             <View className="flex-1 items-center justify-center py-20 w-full">
@@ -154,13 +155,13 @@ const OrderCard = ({
       {/* Card Footer */}
       {isActiveTab && (
         <View className="p-4 bg-slate-50 border-t border-slate-100">
-          <TouchableOpacity
+          <Pressable
             onPress={onMarkReady}
             className="w-full bg-green-600 flex-row items-center justify-center py-4 rounded-lg shadow-sm"
           >
             <MaterialIcons name="check-circle" size={24} color="white" className="mr-2" />
             <Text className="text-white font-bold text-lg ml-2">MARCAR ORDEN LISTA</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
     </View>
@@ -188,7 +189,7 @@ const OrderItemRow = ({
     return (
       <View className="flex-col gap-2 border-b border-slate-100 pb-2">
         {hasSopa && (
-          <TouchableOpacity 
+          <Pressable 
             disabled={!isActiveTab || item.sopaStatus === 'READY'} 
             onPress={onMarkSopaReady}
             className={`flex-row items-start gap-3 ${item.sopaStatus === 'READY' ? 'opacity-40' : ''}`}
@@ -200,9 +201,9 @@ const OrderItemRow = ({
               </Text>
             </View>
             {item.sopaStatus === 'READY' && <MaterialIcons name="check-circle" size={20} color="#16a34a" />}
-          </TouchableOpacity>
+          </Pressable>
         )}
-        <TouchableOpacity 
+        <Pressable 
           disabled={!isActiveTab || item.bandejaStatus === 'READY'} 
           onPress={onMarkBandejaReady}
           className={`flex-row items-start gap-3 ${item.bandejaStatus === 'READY' ? 'opacity-40' : ''}`}
@@ -219,14 +220,14 @@ const OrderItemRow = ({
             )}
           </View>
           {item.bandejaStatus === 'READY' && <MaterialIcons name="check-circle" size={20} color="#16a34a" />}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
 
   // Regular Item Flow
   return (
-    <TouchableOpacity 
+    <Pressable 
       disabled={!isActiveTab || item.status === 'READY'} 
       onPress={onMarkReady}
       className={`flex-col gap-1 border-b border-slate-100 pb-2 ${item.status === 'READY' ? 'opacity-40' : ''}`}
@@ -261,7 +262,7 @@ const OrderItemRow = ({
         </View>
         {item.status === 'READY' && <MaterialIcons name="check-circle" size={20} color="#16a34a" />}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

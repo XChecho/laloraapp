@@ -60,7 +60,7 @@ const VerifyOrderScreen = () => {
       </ScrollView>
 
       {currentOrder.length > 0 && (
-        <View className="p-6 bg-white border-t border-gray-100">
+        <View className="px-6 pt-6 pb-12 bg-white border-t border-gray-100">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-gray-500 font-InterBold text-lg">Total del Pedido</Text>
             <Text className="text-2xl font-InterBold text-lora-primary">{formatCOP(total)}</Text>
