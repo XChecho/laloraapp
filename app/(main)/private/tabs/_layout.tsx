@@ -32,6 +32,13 @@ const TabsLayout = () => {
         }}
       >
         <Tabs.Screen
+          name="cancha/index"
+          options={{
+            title: "Cancha",
+            tabBarIcon: ({ color, size }) => <Ionicons name="football-outline" size={size || 24} color={color} />
+          }}
+        />
+        <Tabs.Screen
           name="waitres"
           options={{
             title: "Mesas",
@@ -65,6 +72,9 @@ const TabsLayout = () => {
 
   return (
     <NativeTabs>
+      <NativeTabs.Trigger name="cancha/index" options={{ title: "Cancha" }}>
+        <Icon src={<VectorIcon family={Ionicons} name="football-outline" />} />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="waitres" options={{ title: "Mesas" }}>
         <Icon src={<VectorIcon family={Ionicons} name="grid-outline" />} />
       </NativeTabs.Trigger>
