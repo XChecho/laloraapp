@@ -163,7 +163,11 @@ const CashierScreen = () => {
         data={filteredTables}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <TableCard table={item} />}
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 150 : 80 }}
+        contentContainerStyle={{ 
+          paddingHorizontal: 16, 
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 150 : 80 
+        }}
         numColumns={1}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}

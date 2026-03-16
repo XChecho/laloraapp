@@ -17,6 +17,7 @@ export interface KitchenOrder {
   items: KitchenItem[];
   status: 'ACTIVE' | 'READY';
   requestedAt: string; // ISO date
+  completedAt?: string; // ISO date when completed
 }
 
 interface KitchenStore {
@@ -119,11 +120,15 @@ export const useKitchenStore = create<KitchenStore>((set) => ({
     set((state) => ({
       orders: state.orders.map((order) => {
         if (order.id !== orderId) return order;
+        const newItems = order.items.map((item) =>
+          item.instanceId === itemInstanceId ? { ...item, status: 'READY' as KitchenItemStatus } : item
+        );
+        const allItemsReady = newItems.every((i) => i.status === 'READY');
         return {
           ...order,
-          items: order.items.map((item) =>
-            item.instanceId === itemInstanceId ? { ...item, status: 'READY' } : item
-          ),
+          items: newItems,
+          status: allItemsReady ? 'READY' : order.status,
+          ...(allItemsReady && order.status !== 'READY' ? { completedAt: new Date().toISOString() } : {}),
         };
       }),
     })),
@@ -131,20 +136,24 @@ export const useKitchenStore = create<KitchenStore>((set) => ({
     set((state) => ({
       orders: state.orders.map((order) => {
         if (order.id !== orderId) return order;
+        const newItems = order.items.map((item) => {
+          if (item.instanceId !== itemInstanceId) return item;
+          
+          const newSopaStatus: KitchenItemStatus = 'READY';
+          const allReady = newSopaStatus === 'READY' && item.bandejaStatus === 'READY';
+          
+          return {
+            ...item,
+            sopaStatus: newSopaStatus,
+            status: allReady ? ('READY' as KitchenItemStatus) : item.status,
+          };
+        });
+        const allItemsReady = newItems.every((i) => i.status === 'READY');
         return {
           ...order,
-          items: order.items.map((item) => {
-            if (item.instanceId !== itemInstanceId) return item;
-            
-            const newSopaStatus = 'READY';
-            const allReady = newSopaStatus === 'READY' && item.bandejaStatus === 'READY';
-            
-            return {
-              ...item,
-              sopaStatus: newSopaStatus,
-              status: allReady ? 'READY' : item.status,
-            };
-          }),
+          items: newItems,
+          status: allItemsReady ? 'READY' : order.status,
+          ...(allItemsReady && order.status !== 'READY' ? { completedAt: new Date().toISOString() } : {}),
         };
       }),
     })),
@@ -152,27 +161,43 @@ export const useKitchenStore = create<KitchenStore>((set) => ({
     set((state) => ({
       orders: state.orders.map((order) => {
         if (order.id !== orderId) return order;
+        const newItems = order.items.map((item) => {
+          if (item.instanceId !== itemInstanceId) return item;
+
+          const newBandejaStatus: KitchenItemStatus = 'READY';
+          const allReady = (item.sopaStatus === 'READY' || item.sopaStatus === undefined) && newBandejaStatus === 'READY';
+
+          return {
+            ...item,
+            bandejaStatus: newBandejaStatus,
+            status: allReady ? ('READY' as KitchenItemStatus) : item.status,
+          };
+        });
+        const allItemsReady = newItems.every((i) => i.status === 'READY');
         return {
           ...order,
-          items: order.items.map((item) => {
-            if (item.instanceId !== itemInstanceId) return item;
-
-            const newBandejaStatus = 'READY';
-            const allReady = (item.sopaStatus === 'READY' || item.sopaStatus === undefined) && newBandejaStatus === 'READY';
-
-            return {
-              ...item,
-              bandejaStatus: newBandejaStatus,
-              status: allReady ? 'READY' : item.status,
-            };
-          }),
+          items: newItems,
+          status: allItemsReady ? 'READY' : order.status,
+          ...(allItemsReady && order.status !== 'READY' ? { completedAt: new Date().toISOString() } : {}),
         };
       }),
     })),
   markOrderReady: (orderId) =>
     set((state) => ({
-      orders: state.orders.map((order) =>
-        order.id === orderId ? { ...order, status: 'READY' } : order
-      ),
+      orders: state.orders.map((order) => {
+        if (order.id !== orderId) return order;
+        return {
+          ...order,
+          status: 'READY',
+          completedAt: new Date().toISOString(),
+          items: order.items.map((item) => ({
+            ...item,
+            status: 'READY' as KitchenItemStatus,
+            ...(item.category === 'almuerzo'
+              ? { sopaStatus: 'READY' as KitchenItemStatus, bandejaStatus: 'READY' as KitchenItemStatus }
+              : {}),
+          })),
+        };
+      }),
     })),
 }));

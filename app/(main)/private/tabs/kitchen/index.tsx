@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { ZoomOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KitchenItem, KitchenOrder, useKitchenStore } from '../../../../../src/store/useKitchenStore';
 
@@ -100,26 +101,37 @@ const OrderCard = ({
   isActiveTab: boolean;
 }) => {
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const [totalMinutes, setTotalMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isActiveTab) return;
-    const calculateTime = () => {
-      const requestedTime = new Date(order.requestedAt).getTime();
-      const now = new Date().getTime();
-      const diffMins = Math.floor((now - requestedTime) / (1000 * 60));
-      setElapsedMinutes(diffMins);
-    };
-    calculateTime();
-    const interval = setInterval(calculateTime, 60000); // Update every minute
-    return () => clearInterval(interval);
-  }, [order.requestedAt, isActiveTab]);
+    const requestedTime = new Date(order.requestedAt).getTime();
+    if (isActiveTab) {
+      const calculateTime = () => {
+        const now = new Date().getTime();
+        const diffMins = Math.floor((now - requestedTime) / (1000 * 60));
+        setElapsedMinutes(diffMins);
+      };
+      calculateTime();
+      const interval = setInterval(calculateTime, 60000); // Update every minute
+      return () => clearInterval(interval);
+    } else {
+      // If it's ready, calculate total time taken
+      const completedTime = order.completedAt ? new Date(order.completedAt).getTime() : new Date().getTime();
+      const diffMins = Math.floor((completedTime - requestedTime) / (1000 * 60));
+      setTotalMinutes(diffMins);
+    }
+  }, [order.requestedAt, order.completedAt, isActiveTab]);
 
-  const isDelayed = isActiveTab && elapsedMinutes > 20;
-  const headerBgColor = isDelayed ? 'bg-red-600' : (isActiveTab ? 'bg-blue-600' : 'bg-slate-600');
-  const cardBorderColor = isDelayed ? 'border-red-400' : 'border-slate-200';
+  const hasAlaCarta = order.items.some(item => item.category !== 'almuerzo');
+  const delayThreshold = hasAlaCarta ? 30 : 25;
+  const isDelayed = isActiveTab && elapsedMinutes >= delayThreshold;
+  const isWarning = isActiveTab && elapsedMinutes >= 20 && elapsedMinutes < delayThreshold;
+
+  const headerBgColor = isDelayed ? 'bg-red-600' : (isWarning ? 'bg-yellow-600' : (isActiveTab ? 'bg-blue-600' : 'bg-slate-600'));
+  const cardBorderColor = isDelayed ? 'border-red-400' : (isWarning ? 'border-yellow-400' : 'border-slate-200');
 
   return (
-    <View className={`w-full md:w-[48%] xl:w-[32%] flex-col bg-white rounded-xl shadow-md border ${cardBorderColor} overflow-hidden ${isDelayed ? 'border-2' : ''}`}>
+    <Animated.View exiting={ZoomOut.duration(400)} className={`w-full md:w-[48%] xl:w-[32%] flex-col bg-white rounded-xl shadow-md border ${cardBorderColor} overflow-hidden ${isDelayed || isWarning ? 'border-2' : ''}`}>
       {/* Card Header */}
       <View className={`${headerBgColor} p-4 flex-row justify-between items-center`}>
         <Text className="text-2xl font-black italic tracking-tighter text-white">#{order.id.replace('o', '').padStart(2, '0')}</Text>
@@ -127,9 +139,14 @@ const OrderCard = ({
           {isDelayed && (
             <Text className="text-xs font-bold uppercase bg-white text-red-600 px-1 rounded mb-1">Retrasado</Text>
           )}
-          <Text className="text-xs font-bold uppercase text-white opacity-80">
-            {isActiveTab ? `Hace ${elapsedMinutes} min` : 'Completado'}
-          </Text>
+          <View className="flex-row items-center">
+            {isWarning && (
+              <MaterialIcons name="warning" size={14} color="#fef08a" className="mr-1" style={{ marginRight: 4 }} />
+            )}
+            <Text className="text-xs font-bold uppercase text-white opacity-80">
+              {isActiveTab ? `Hace ${elapsedMinutes} min` : `Tardó ${totalMinutes !== null ? totalMinutes : 0} min`}
+            </Text>
+          </View>
           <Text className="text-sm font-medium text-white">
             {order.type === 'LLEVAR' ? 'Para Llevar' : order.tableName}
           </Text>
@@ -164,7 +181,7 @@ const OrderCard = ({
           </Pressable>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
