@@ -53,7 +53,7 @@ const TabsLayout = () => {
           }}
         />
         <Tabs.Screen
-          name="admin/index"
+          name="admin"
           options={{
             title: "Admin",
             tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size || 24} color={color} />
@@ -74,7 +74,7 @@ const TabsLayout = () => {
       <NativeTabs.Trigger name="kitchen/index" options={{ title: "Cocina" }}>
         <Icon src={<VectorIcon family={Ionicons} name="flame-outline" />} />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="admin/index" options={{ title: "Admin" }}>
+      <NativeTabs.Trigger name="admin" options={{ title: "Admin" }}>
         <Icon src={<VectorIcon family={Ionicons} name="settings-outline" />} />
       </NativeTabs.Trigger>
     </NativeTabs>
