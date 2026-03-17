@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, Modal, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-export type ReservationStatus = 'PENDIENTE' | 'CONFIRMADA' | 'CANCELADA' | 'EN CURSO' | 'FINALIZADA';
+import { ReservationStatus } from '@core/database/mockDb';
 
 interface ReservationCardProps {
   id: string;

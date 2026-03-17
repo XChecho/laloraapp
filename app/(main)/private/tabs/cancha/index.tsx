@@ -1,36 +1,51 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, Platform, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ReservationCard, ReservationStatus } from '../../../../../src/components/cancha/ReservationCard';
-import { CanchaModal } from '../../../../../src/components/cancha/CanchaModal';
+import { formatCOP } from '@core/helper/validators';
+import { MOCK_DB, CanchaAccount, ReservationStatus } from '@core/database/mockDb';
 
-const mockReservationsData = [
-  { id: '1', customer: 'Juan Pérez', phone: '3001112233', start: '17:00', end: '18:00', status: 'CONFIRMADA' as ReservationStatus },
-  { id: '2', customer: 'María García', phone: '3104445566', start: '18:00', end: '19:00', status: 'PENDIENTE' as ReservationStatus },
-  { id: '3', customer: 'Club de Tenis S.A.', phone: '3207778899', start: '19:00', end: '20:00', status: 'PENDIENTE' as ReservationStatus },
-  { id: '4', customer: '', phone: '', start: '20:00', end: '21:00', status: 'PENDIENTE' as ReservationStatus },
-  { id: '5', customer: '', phone: '', start: '21:00', end: '22:00', status: 'PENDIENTE' as ReservationStatus },
-  { id: '6', customer: '', phone: '', start: '22:00', end: '23:00', status: 'PENDIENTE' as ReservationStatus },
-];
+// Components
+import { ReservationCard } from '@src/components/cancha/ReservationCard';
+import { CanchaModal } from '@src/components/cancha/CanchaModal';
+import { CanchaHeader } from '@src/components/cancha/CanchaHeader';
+import { CanchaTabs } from '@src/components/cancha/CanchaTabs';
+import { CanchaVentasContent } from '@src/components/cancha/CanchaVentasContent';
+import { CanchaMenuModal } from '@src/components/cancha/CanchaMenuModal';
+import { CanchaAccountDetailsModal } from '@src/components/cancha/CanchaAccountDetailsModal';
+import { CanchaDateModal } from '@src/components/cancha/CanchaDateModal';
 
-const quickSaleProducts = [
-  { id: '1', name: 'Agua 600ml', price: '$2,500', icon: 'water-outline' },
-  { id: '2', name: 'Gatorade', price: '$8,500', icon: 'flash-outline' },
-  { id: '3', name: 'Tubo Pelotas', price: '$25,000', icon: 'tennisball-outline' },
-  { id: '4', name: 'Barra Proteica', price: '$6,000', icon: 'nutrition-outline' },
-];
+const PRIMARY = '#0A873A';
 
 const CanchaScreen = () => {
-  const [activeTab, setActiveTab] = useState('reservas');
-  const [reservations, setReservations] = useState(mockReservationsData);
-  const [selectedDate, setSelectedDate] = useState('16 Mar 2024');
+  const [activeTab, setActiveTab] = useState<'reservas' | 'ventas'>('reservas');
+  const insets = useSafeAreaInsets();
   
-  // Modal states
+  // Reservations State
+  const [reservations, setReservations] = useState(MOCK_DB.reservations);
+  const [selectedDate, setSelectedDate] = useState('16 Mar 2024');
   const [modalVisible, setModalVisible] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [editingRes, setEditingRes] = useState<any>(null);
 
+  // Ventas Individuales State
+  const [accounts, setAccounts] = useState<CanchaAccount[]>(MOCK_DB.canchaAccounts);
+  const [historyAccounts, setHistoryAccounts] = useState<CanchaAccount[]>(MOCK_DB.canchaHistory);
+  const [salesView, setSalesView] = useState<'activas' | 'historial'>('activas');
+  
+  const [activeAccount, setActiveAccount] = useState<CanchaAccount | null>(null);
+  const [newAccountVisible, setNewAccountVisible] = useState(false);
+  const [newAccountName, setNewAccountName] = useState('');
+  
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuTab, setMenuTab] = useState('Bebidas');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [closeConfirmVisible, setCloseConfirmVisible] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
+
+  // Reservation Handlers
   const handleStatusChange = (id: string, newStatus: ReservationStatus) => {
     setReservations(prev => prev.map(res => res.id === id ? { ...res, status: newStatus } : res));
   };
@@ -49,10 +64,8 @@ const CanchaScreen = () => {
 
   const handleSaveReservation = (data: any) => {
     if (editingRes && editingRes.id) {
-        // Edit existing logic
         setReservations(prev => prev.map(res => res.id === editingRes.id ? { ...res, customer: data.customerName, phone: data.phone, start: data.startTime, end: data.endTime } : res));
     } else {
-        // Find if slot exists and update or add new
         const slotIdx = reservations.findIndex(r => r.start === data.startTime && !r.customer);
         if (slotIdx !== -1) {
             setReservations(prev => {
@@ -62,160 +75,199 @@ const CanchaScreen = () => {
             });
         }
     }
+    setModalVisible(false);
+  };
+
+  // Account Handlers
+  const handleCreateAccount = () => {
+    if (!newAccountName) return;
+    const newId = `A${Date.now()}`;
+    const newAcc: CanchaAccount = { id: newId, name: newAccountName, summary: '', total: 0, items: [] };
+    setActiveAccount(newAcc);
+    setIsDraft(true);
+    setNewAccountVisible(false);
+    setNewAccountName('');
+    setMenuVisible(true);
+  };
+
+  const handleConfirmDraftAccount = () => {
+    if (!activeAccount) return;
+    setAccounts([activeAccount, ...accounts]);
+    setIsDraft(false);
+    setDetailsVisible(false);
+  };
+
+  const handleCloseAccount = () => {
+    if (!activeAccount) return;
+    const closedAcc = { 
+      ...activeAccount, 
+      closedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toLocaleDateString()
+    };
+    setHistoryAccounts(prev => [closedAcc, ...prev]);
+    setAccounts(prev => prev.filter(a => a.id !== activeAccount.id));
+    setCloseConfirmVisible(false);
+    setDetailsVisible(false);
+    setActiveAccount(null);
+  };
+
+  const updateAccountState = (newItems: any[]) => {
+    if (!activeAccount) return;
+    const newTotal = newItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+    const newSummary = newItems.map(i => `${i.qty} ${i.name}`).join(', ');
+    const updatedAccount = { ...activeAccount, items: newItems, total: newTotal, summary: newSummary };
+    setActiveAccount(updatedAccount);
+    if (!isDraft) {
+      setAccounts(prev => prev.map(a => a.id === activeAccount.id ? updatedAccount : a));
+    }
+  };
+
+  const handleAddItem = (item: any) => {
+    if (!activeAccount) return;
+    const existingIdx = activeAccount.items.findIndex((i: any) => i.id === item.id);
+    let newItems = [...activeAccount.items];
+    if (existingIdx !== -1) {
+      newItems[existingIdx] = { ...newItems[existingIdx], qty: newItems[existingIdx].qty + 1 };
+    } else {
+      newItems.push({ ...item, qty: 1 });
+    }
+    updateAccountState(newItems);
+  };
+
+  const handleUpdateQty = (itemId: string, delta: number) => {
+    if (!activeAccount) return;
+    const newItems = activeAccount.items.map((i: any) => 
+      i.id === itemId ? { ...i, qty: Math.max(1, i.qty + delta) } : i
+    );
+    updateAccountState(newItems);
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    if (!activeAccount) return;
+    const newItems = activeAccount.items.filter((i: any) => i.id !== itemId);
+    updateAccountState(newItems);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-lora-bg" edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-6 py-4">
-          <Text className="text-2xl font-InterBold text-lora-text">
-            La Lora - <Text className="text-lora-primary">Cancha</Text>
-          </Text>
-          <View className="flex-row items-center gap-3">
-            <Pressable 
-                onPress={() => setDateModalVisible(true)}
-                className="bg-white px-4 py-2.5 rounded-2xl flex-row items-center border border-lora-border/20 shadow-sm"
-            >
-                <Ionicons name="calendar-outline" size={18} color="#0A873A" className="mr-2" />
-                <Text className="text-[13px] font-InterExtraBold text-lora-text">{selectedDate}</Text>
-            </Pressable>
-            <Pressable className="w-11 h-11 bg-emerald-50 rounded-2xl items-center justify-center border border-emerald-100/50">
-              <Ionicons name="notifications-outline" size={22} color="#059669" />
-            </Pressable>
-          </View>
-        </View>
+    <SafeAreaView className="flex-1 bg-lora-bg" edges={['top', 'left', 'right']}>
+      <View style={{ backgroundColor: '#F8FAFC' }}>
+        <CanchaHeader selectedDate={selectedDate} onOpenDatePicker={() => setDateModalVisible(true)} />
+        <CanchaTabs activeTab={activeTab} onTabChange={setActiveTab} primaryColor={PRIMARY} />
 
-        {/* Action Tabs */}
-        <View className="px-6 mt-4">
-          <View className="bg-white/50 p-1.5 rounded-3xl flex-row border border-lora-border/20">
-            <Pressable 
-              onPress={() => setActiveTab('reservas')}
-              className={`flex-1 py-3 rounded-[20px] items-center ${activeTab === 'reservas' ? 'bg-lora-primary shadow-sm' : ''}`}
-            >
-              <Text className={`font-InterBold ${activeTab === 'reservas' ? 'text-white' : 'text-lora-text-muted'}`}>Reservas</Text>
-            </Pressable>
-            <Pressable 
-              onPress={() => setActiveTab('ventas')}
-              className={`flex-1 py-3 rounded-[20px] items-center ${activeTab === 'ventas' ? 'bg-lora-primary shadow-sm' : ''}`}
-            >
-              <Text className={`font-InterBold ${activeTab === 'ventas' ? 'text-white' : 'text-lora-text-muted'}`}>Ventas Individuales</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Global Action */}
-        <View className="px-6 mt-6">
-          <Pressable 
-            onPress={() => openNewReservation()}
-            className="bg-lora-primary py-4 rounded-3xl flex-row items-center justify-center shadow-lg shadow-lora-primary/30"
+        <View style={{ paddingHorizontal: 24, marginVertical: 20 }}>
+          <Pressable
+            onPress={activeTab === 'reservas' ? () => openNewReservation() : () => setNewAccountVisible(true)}
+            style={{ 
+              backgroundColor: activeTab === 'reservas' ? PRIMARY : '#111A2C', 
+              paddingVertical: 16, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 
+            }}
           >
-            <Ionicons name="add-circle" size={24} color="white" className="mr-2" />
-            <Text className="text-white font-InterExtraBold text-lg">Nueva Reserva</Text>
+            <Ionicons name={activeTab === 'reservas' ? "add-circle" : "receipt-outline"} size={24} color="white" style={{ marginRight: 8 }} />
+            <Text style={{ color: 'white', fontFamily: 'InterExtraBold', fontSize: 18 }}>
+              {activeTab === 'reservas' ? 'Nueva Reserva' : 'Abrir Nueva Cuenta'}
+            </Text>
           </Pressable>
         </View>
+      </View>
 
-        {/* Reservations List */}
-        <View className="px-6 mt-10">
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-xl font-InterBold text-lora-text">Próximas Reservas</Text>
-            <Text className="text-xs font-InterBold text-lora-primary bg-emerald-50 px-3 py-1.5 rounded-xl">Hoy, {selectedDate.split(' ').slice(0, 2).join(' ')}</Text>
-          </View>
-
-          {reservations.map((res) => (
-            <ReservationCard 
-              key={`${res.id}-${res.customer}`}
-              id={res.id}
-              customerName={res.customer || 'Espacio Disponible'}
-              startTime={res.start}
-              endTime={res.end}
-              phone={res.phone}
-              initialStatus={res.status}
-              canStart={!hasActiveReservation}
-              onStatusChange={handleStatusChange}
-              onNewReservationRequested={(slot) => openNewReservation(slot)}
-              onCancel={() => handleStatusChange(res.id, 'CANCELADA')}
-              onEdit={() => {
-                setEditingRes({ ...res, customerName: res.customer, startTime: res.start, endTime: res.end });
-                setModalVisible(true);
-              }}
-            />
-          ))}
-        </View>
-
-        {/* Quick Sale Section */}
-        <View className="px-6 mt-8">
-          <Text className="text-xl font-InterBold text-lora-text mb-6">Venta Rápida</Text>
-          <View className="flex-row flex-wrap justify-between gap-y-4">
-            {quickSaleProducts.map((product) => (
-              <Pressable 
-                key={product.id}
-                className="bg-white rounded-[32px] p-6 w-[48%] border border-lora-border/10 shadow-sm"
-              >
-                <View className="w-12 h-12 rounded-2xl bg-lora-bg items-center justify-center mb-4">
-                  <Ionicons name={product.icon as any} size={24} color="#0A873A" />
-                </View>
-                <Text className="font-InterBold text-lora-text text-[15px] mb-1">{product.name}</Text>
-                <Text className="font-InterBold text-lora-primary">{product.price}</Text>
-              </Pressable>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 120 : 80 }}>
+        {activeTab === 'reservas' ? (
+          <View className="px-6 mt-4">
+            <View className="flex-row items-center justify-between mb-6">
+              <Text className="text-xl font-InterBold text-lora-text">Próximas Reservas</Text>
+              <Text className="text-xs font-InterBold text-lora-primary bg-emerald-50 px-3 py-1.5 rounded-xl">Hoy, {selectedDate.split(' ').slice(0, 2).join(' ')}</Text>
+            </View>
+            {reservations.map((res) => (
+              <ReservationCard 
+                key={`${res.id}-${res.customer}`}
+                id={res.id}
+                customerName={res.customer || 'Espacio Disponible'}
+                startTime={res.start}
+                endTime={res.end}
+                phone={res.phone}
+                initialStatus={res.status}
+                canStart={!hasActiveReservation}
+                onStatusChange={handleStatusChange}
+                onNewReservationRequested={openNewReservation}
+                onCancel={() => handleStatusChange(res.id, 'CANCELADA')}
+                onEdit={() => {
+                  setEditingRes({ ...res, customerName: res.customer, startTime: res.start, endTime: res.end });
+                  setModalVisible(true);
+                }}
+              />
             ))}
           </View>
-        </View>
+        ) : (
+          <CanchaVentasContent 
+            salesView={salesView} 
+            setSalesView={setSalesView} 
+            accounts={accounts} 
+            historyAccounts={historyAccounts} 
+            onOpenDetails={(acc) => { setActiveAccount(acc); setIsDraft(false); setDetailsVisible(true); }}
+            onOpenCloseConfirm={(acc) => { setActiveAccount(acc); setCloseConfirmVisible(true); }}
+            primaryColor={PRIMARY}
+          />
+        )}
       </ScrollView>
 
-      {/* Floating Cart Button */}
-      <Pressable className="absolute bottom-6 right-6 w-16 h-16 bg-lora-primary rounded-full items-center justify-center shadow-xl shadow-lora-primary/40 border-4 border-white">
-        <Ionicons name="cart" size={28} color="white" />
-        <View className="absolute -top-1 -right-1 bg-red-500 w-6 h-6 rounded-full items-center justify-center border-2 border-white">
-          <Text className="text-white text-[10px] font-InterExtraBold">2</Text>
-        </View>
-      </Pressable>
-
-      <CanchaModal 
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSave={handleSaveReservation}
-        initialData={editingRes}
-        isEditing={!!editingRes && editingRes.customerName !== 'Espacio Disponible'}
+      {/* Modals */}
+      <CanchaModal visible={modalVisible} onClose={() => setModalVisible(false)} onSave={handleSaveReservation} initialData={editingRes} isEditing={!!editingRes && editingRes.customerName !== 'Espacio Disponible'} />
+      <CanchaDateModal visible={dateModalVisible} onClose={() => setDateModalVisible(false)} selectedDate={selectedDate} onSelectDate={(d) => { setSelectedDate(d); setDateModalVisible(false); }} primaryColor={PRIMARY} />
+      
+      <CanchaMenuModal 
+        visible={menuVisible} 
+        onClose={() => setMenuVisible(false)} 
+        activeAccount={activeAccount} 
+        onAddItem={handleAddItem} 
+        onViewOrder={() => { setMenuVisible(false); setDetailsVisible(true); }} 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+        menuTab={menuTab} 
+        setMenuTab={setMenuTab} 
+        primaryColor={PRIMARY} 
       />
 
-      {/* Basic Date Picker Modal (Visual only for now as proof of concept) */}
-      <Modal visible={dateModalVisible} transparent animationType="fade" onRequestClose={() => setDateModalVisible(false)}>
-        <Pressable className="flex-1 bg-black/40 justify-center items-center px-6" onPress={() => setDateModalVisible(false)}>
-            <View className="bg-white rounded-[40px] p-8 w-full shadow-2xl" onStartShouldSetResponder={() => true}>
-                <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-xl font-InterBold text-lora-text">Seleccionar Fecha</Text>
-                    <Pressable onPress={() => setDateModalVisible(false)}>
-                        <Ionicons name="close" size={24} color="#94A3B8" />
-                    </Pressable>
-                </View>
-                
-                {/* Visual Calendar Placeholder */}
-                <View className="bg-lora-bg rounded-[32px] p-4 mb-6">
-                    <View className="flex-row justify-between items-center mb-4 px-2">
-                        <Text className="font-InterBold text-lora-text">Marzo 2024</Text>
-                        <View className="flex-row gap-4">
-                            <Ionicons name="chevron-back" size={20} color="#0A873A" />
-                            <Ionicons name="chevron-forward" size={20} color="#0A873A" />
-                        </View>
-                    </View>
-                    <View className="flex-row flex-wrap gap-2 justify-center">
-                        {[13, 14, 15, 16, 17, 18, 19].map(d => (
-                            <Pressable 
-                                key={d}
-                                onPress={() => {
-                                    setSelectedDate(`${d} Mar 2024`);
-                                    setDateModalVisible(false);
-                                }}
-                                className={`w-10 h-10 rounded-full items-center justify-center ${d === 16 ? 'bg-lora-primary' : 'bg-white'}`}
-                            >
-                                <Text className={`font-InterBold ${d === 16 ? 'text-white' : 'text-slate-600'}`}>{d}</Text>
-                            </Pressable>
-                        ))}
-                    </View>
-                </View>
+      <CanchaAccountDetailsModal 
+        visible={detailsVisible} 
+        onClose={() => setDetailsVisible(false)} 
+        activeAccount={activeAccount} 
+        onUpdateQty={handleUpdateQty} 
+        onRemoveItem={handleRemoveItem} 
+        onAddMore={() => { setDetailsVisible(false); setMenuVisible(true); }} 
+        onConfirm={() => { if (isDraft) handleConfirmDraftAccount(); else { setDetailsVisible(false); setCloseConfirmVisible(true); } }} 
+        isDraft={isDraft} 
+        primaryColor={PRIMARY} 
+      />
+
+      {/* New Account Name Modal */}
+      <Modal visible={newAccountVisible} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-black/60 justify-end">
+          <View className="bg-white rounded-t-[40px] p-8 pb-12">
+            <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
+            <Text className="text-2xl font-InterBold text-lora-text mb-6">Nueva Cuenta</Text>
+            <Text className="text-xs font-InterBold text-slate-500 uppercase mb-2">Nombre del Cliente</Text>
+            <TextInput value={newAccountName} onChangeText={setNewAccountName} placeholder="Ej. Carlos Rodríguez" className="bg-lora-bg rounded-2xl p-4 font-InterSemiBold text-lora-text mb-8" autoFocus />
+            <View className="flex-row gap-4">
+              <Pressable onPress={() => setNewAccountVisible(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl items-center"><Text className="font-InterBold text-slate-500">Cancelar</Text></Pressable>
+              <Pressable onPress={handleCreateAccount} className={`flex-[2] py-4 rounded-2xl items-center shadow-sm ${newAccountName ? 'bg-lora-primary' : 'bg-slate-300'}`} disabled={!newAccountName}><Text className="font-InterBold text-white">Continuar al Menú</Text></Pressable>
             </View>
-        </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Close Confirm Modal */}
+      <Modal visible={closeConfirmVisible} transparent animationType="fade">
+        <View className="flex-1 bg-black/50 justify-center px-8">
+          <View className="bg-white rounded-[32px] p-8 items-center shadow-2xl">
+            <View className="w-16 h-16 bg-red-50 rounded-full items-center justify-center mb-6"><Ionicons name="alert-circle" size={36} color="#EF4444" /></View>
+            <Text className="text-2xl font-InterBold text-lora-text text-center mb-2">¿Cerrar Cuenta?</Text>
+            <Text className="text-center text-slate-500 font-InterMedium mb-8">Esta acción cerrará la cuenta temporal para {activeAccount?.name} por {formatCOP(activeAccount?.total || 0)}.</Text>
+            <View className="flex-row w-full gap-3">
+              <Pressable onPress={() => setCloseConfirmVisible(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl items-center"><Text className="font-InterBold text-slate-500">Volver</Text></Pressable>
+              <Pressable onPress={handleCloseAccount} className="flex-1 py-4 bg-red-500 rounded-2xl items-center shadow-lg shadow-red-500/30"><Text className="font-InterBold text-white">Sí, Cerrar</Text></Pressable>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
