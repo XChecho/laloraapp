@@ -3,13 +3,12 @@ import { Modal, View, Text, Pressable, ScrollView } from 'react-native';
 import { useModalStore } from '@store/useModalStore';
 import { Ionicons } from '@expo/vector-icons';
 import { formatCOP } from '@core/helper/validators';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { MOCK_DB } from '@core/database/mockDb';
 
 export const OrderDetailsModal = () => {
   const { activeModal, modalData, closeModal } = useModalStore();
   const visible = activeModal === 'ORDER_DETAILS';
-  const router = useRouter();
 
   const table = MOCK_DB.tables.find(t => t.id === modalData.tableId);
 

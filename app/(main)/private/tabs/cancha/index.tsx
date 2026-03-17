@@ -14,6 +14,7 @@ import { CanchaVentasContent } from '@src/components/cancha/CanchaVentasContent'
 import { CanchaMenuModal } from '@src/components/cancha/CanchaMenuModal';
 import { CanchaAccountDetailsModal } from '@src/components/cancha/CanchaAccountDetailsModal';
 import { CanchaDateModal } from '@src/components/cancha/CanchaDateModal';
+import { CanchaHistoryModal } from '@src/components/cancha/CanchaHistoryModal';
 
 const PRIMARY = '#0A873A';
 
@@ -31,7 +32,7 @@ const CanchaScreen = () => {
   // Ventas Individuales State
   const [accounts, setAccounts] = useState<CanchaAccount[]>(MOCK_DB.canchaAccounts);
   const [historyAccounts, setHistoryAccounts] = useState<CanchaAccount[]>(MOCK_DB.canchaHistory);
-  const [salesView, setSalesView] = useState<'activas' | 'historial'>('activas');
+  const [historyVisible, setHistoryVisible] = useState(false);
   
   const [activeAccount, setActiveAccount] = useState<CanchaAccount | null>(null);
   const [newAccountVisible, setNewAccountVisible] = useState(false);
@@ -199,12 +200,11 @@ const CanchaScreen = () => {
           </View>
         ) : (
           <CanchaVentasContent 
-            salesView={salesView} 
-            setSalesView={setSalesView} 
             accounts={accounts} 
-            historyAccounts={historyAccounts} 
+            historyCount={historyAccounts.length}
             onOpenDetails={(acc) => { setActiveAccount(acc); setIsDraft(false); setDetailsVisible(true); }}
             onOpenCloseConfirm={(acc) => { setActiveAccount(acc); setCloseConfirmVisible(true); }}
+            onOpenHistory={() => setHistoryVisible(true)}
             primaryColor={PRIMARY}
           />
         )}
@@ -236,6 +236,13 @@ const CanchaScreen = () => {
         onAddMore={() => { setDetailsVisible(false); setMenuVisible(true); }} 
         onConfirm={() => { if (isDraft) handleConfirmDraftAccount(); else { setDetailsVisible(false); setCloseConfirmVisible(true); } }} 
         isDraft={isDraft} 
+        primaryColor={PRIMARY} 
+      />
+
+      <CanchaHistoryModal 
+        visible={historyVisible} 
+        onClose={() => setHistoryVisible(false)} 
+        historyAccounts={historyAccounts} 
         primaryColor={PRIMARY} 
       />
 
