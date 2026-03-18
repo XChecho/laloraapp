@@ -2,6 +2,8 @@ import { MOCK_DB, Table } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useModalStore } from '@store/useModalStore';
+import { useAdminStore } from '@store/admin/useAdminStore';
+import { ScreenHeader } from '@src/components/ui/ScreenHeader';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -26,38 +28,27 @@ const cardShadow = Platform.select({
   },
 });
 
-const TableCard = ({ table }: { table: Table }) => {
+const TableCard = ({ table, onOpenDetails, onOpenMesa }: { table: Table; onOpenDetails: (id: number) => void; onOpenMesa: (id: number) => void }) => {
   const isOccupied = table.status === 'OCUPADA';
-  const router = useRouter();
-  const openModal = useModalStore(state => state.openModal);
-
-  const handleAction = () => {
-    if (isOccupied) {
-      openModal('ORDER_DETAILS', { tableId: table.id });
-    } else {
-      router.push(`/(main)/private/tabs/waitres/${table.id}`);
-    }
-  };
 
   return (
     <View
-      className="flex-1 bg-white rounded-2xl overflow-hidden border border-gray-200 mx-2 mb-4"
-      style={cardShadow}
+      className="bg-white rounded-2xl overflow-hidden border border-gray-200 mb-4 mx-2"
+      style={[cardShadow, { width: '45%' }]}
     >
       {/* Image */}
-      <View className="relative h-28">
+      <View className="relative h-24">
         <Image
           source={{ uri: table.image }}
           className="w-full h-full"
           resizeMode="cover"
           style={isOccupied ? {} : { opacity: 0.4 }}
         />
-        {/* Status Badge */}
         <View
-          className={`absolute top-2 right-2 px-3 py-1 rounded-full ${isOccupied ? 'bg-red-500' : 'bg-gray-400'
+          className={`absolute top-2 right-2 px-2 py-0.5 rounded-full ${isOccupied ? 'bg-red-500' : 'bg-emerald-500'
             }`}
         >
-          <Text className="text-white text-[10px] font-InterBold tracking-wider">
+          <Text className="text-white text-[9px] font-InterBold uppercase tracking-tighter">
             {table.status}
           </Text>
         </View>
@@ -65,24 +56,23 @@ const TableCard = ({ table }: { table: Table }) => {
 
       {/* Info */}
       <View className="p-3">
-        <Text className="text-base font-InterBold text-lora-text">{table.name}</Text>
+        <Text className="text-sm font-InterBold text-lora-text" numberOfLines={1}>{table.name}</Text>
         <Text
-          className={`text-sm font-InterBold mt-0.5 ${isOccupied ? 'text-lora-primary' : 'text-gray-400'
+          className={`text-xs font-InterBold mt-0.5 ${isOccupied ? 'text-lora-primary' : 'text-gray-400'
             }`}
         >
           {isOccupied ? formatCOP(table.total) : formatCOP(0)}
         </Text>
 
-        {/* Action Button */}
         <Pressable
-          onPress={handleAction}
-          className={`mt-3 py-2.5 rounded-xl items-center justify-center active:opacity-70 ${isOccupied
-            ? 'bg-gray-50 border border-gray-200'
+          onPress={() => isOccupied ? onOpenDetails(table.id) : onOpenMesa(table.id)}
+          className={`mt-3 py-2 rounded-xl items-center justify-center active:opacity-70 ${isOccupied
+            ? 'bg-gray-50 border border-gray-100'
             : 'bg-lora-primary'
             }`}
         >
           <Text
-            className={`text-xs font-InterBold text-center ${isOccupied ? 'text-lora-text' : 'text-white'
+            className={`text-[11px] font-InterBold text-center ${isOccupied ? 'text-lora-text' : 'text-white'
               }`}
           >
             {isOccupied ? 'Ver Detalles' : 'Abrir Mesa'}
@@ -94,35 +84,78 @@ const TableCard = ({ table }: { table: Table }) => {
 };
 
 const WaitresScreen = () => {
-  return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-100">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
-        <Pressable className="p-1">
-          <Ionicons name="menu" size={26} color="#1B2332" />
-        </Pressable>
-        <Text className="text-xl font-InterBold text-lora-text">Mis Mesas</Text>
-        <Pressable className="p-1">
-          <Ionicons name="notifications-outline" size={24} color="#1B2332" />
-        </Pressable>
-      </View>
-      <Text className="px-5 text-sm font-InterMedium text-lora-primary mb-4">
-        Restaurante La Lora
-      </Text>
+  const router = useRouter();
+  const openModal = useModalStore(state => state.openModal);
+  const { zones, tables: adminTables } = useAdminStore();
 
-      {/* Tables Grid */}
+  const handleOpenDetails = (tableId: number) => {
+    openModal('ORDER_DETAILS', { tableId });
+  };
+
+  const handleOpenMesa = (tableId: number) => {
+    router.push(`/(main)/private/tabs/waitres/${tableId}`);
+  };
+
+  return (
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-50">
+      <ScreenHeader 
+        title="Mesas" 
+        subtitle="Restaurante La Lora" 
+      />
+
       <ScrollView
-        className="flex-1 px-3"
+        className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 10 }}
+        contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
       >
-        <View className="flex-row flex-wrap">
-          {MOCK_DB.tables.map((table) => (
-            <View key={table.id} className="w-1/2">
-              <TableCard table={table} />
+        {zones.map((zone) => {
+          const zoneAdminTables = adminTables.filter(t => t.zoneId === zone.id);
+          if (zoneAdminTables.length === 0) return null;
+
+          return (
+            <View key={zone.id} className="mb-8">
+              <View className="flex-row items-center px-6 mb-4">
+                <View className="w-1 h-5 bg-lora-primary rounded-full mr-3" />
+                <Text className="text-lg font-InterBold text-lora-text">{zone.name}</Text>
+                <View className="ml-3 bg-slate-200 px-2 py-0.5 rounded-md">
+                  <Text className="text-[10px] font-InterBold text-slate-600">{zoneAdminTables.length}</Text>
+                </View>
+              </View>
+
+              <View className="flex-row flex-wrap px-4">
+                {zoneAdminTables.map((adminTable) => {
+                  // Find detailed data in MOCK_DB or use admin info
+                  const dbTable = MOCK_DB.tables.find(t => t.id === adminTable.dbId);
+                  const tableData: Table = dbTable || {
+                    id: parseInt(adminTable.id),
+                    name: adminTable.name,
+                    status: adminTable.status,
+                    total: 0,
+                    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400',
+                    currentOrder: [],
+                    zone: 'SALON'
+                  } as Table;
+
+                  return (
+                    <TableCard 
+                      key={adminTable.id} 
+                      table={tableData} 
+                      onOpenDetails={handleOpenDetails}
+                      onOpenMesa={handleOpenMesa}
+                    />
+                  );
+                })}
+              </View>
             </View>
-          ))}
-        </View>
+          );
+        })}
+        
+        {zones.length === 0 && (
+          <View className="items-center justify-center py-20 opacity-40">
+            <Ionicons name="restaurant-outline" size={48} color="#94A3B8" />
+            <Text className="mt-4 font-InterBold text-slate-500">No hay espacios configurados</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

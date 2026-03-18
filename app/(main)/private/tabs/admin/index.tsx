@@ -14,6 +14,8 @@ import { AdminSummaryCard } from '@src/components/admin/AdminSummaryCard';
 import { InventorySection } from '@src/components/admin/InventorySection';
 import { ManagementTipSection, StaffSection } from '@src/components/admin/StaffSection';
 import { RecentClosuresSection } from '@src/components/admin/RecentClosuresSection';
+import { TablesSection } from '@src/components/admin/TablesSection';
+import { ScreenHeader } from '@src/components/ui/ScreenHeader';
 
 const AdminDashboard = () => {
   const router = useRouter();
@@ -23,20 +25,10 @@ const AdminDashboard = () => {
       id: '1',
       title: 'Ventas de Hoy',
       value: '$1,245,000',
-      trend: '+12.5%',
       icon: 'cash-outline' as const,
       iconColor: '#0A873A',
       iconBg: '#DCFCE7',
       onPress: () => router.push('/private/tabs/admin/reports'),
-    },
-    {
-      id: '2',
-      title: 'Reservas de Cancha',
-      value: '18',
-      trend: '+4',
-      icon: 'calendar-outline' as const,
-      iconColor: '#2563EB',
-      iconBg: '#DBEAFE',
     },
     {
       id: '3',
@@ -52,19 +44,16 @@ const AdminDashboard = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-lora-bg" edges={['top']}>
+      <ScreenHeader 
+        title="Administración" 
+        subtitle="Panel de Control General" 
+      />
+      
       <ScrollView 
         className="flex-1 px-6"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingTop: 10, paddingBottom: 40 }}
       >
-        {/* Header */}
-        <View className="mb-8">
-          <Text className="text-3xl font-InterBold text-lora-text mb-1">Panel de Control</Text>
-          <Text className="text-sm font-InterMedium text-lora-text-muted">
-            Bienvenido al sistema de Cancha y Restaurante La Lora.
-          </Text>
-        </View>
-
         {/* Summary Cards Grid */}
         <View className="flex-row flex-wrap justify-between mb-4">
           {summaryData.map((item) => (
@@ -76,6 +65,9 @@ const AdminDashboard = () => {
 
         {/* Recent Closures */}
         <RecentClosuresSection />
+
+        {/* Tables & Spaces */}
+        <TablesSection onPress={() => router.push('/private/tabs/admin/tables')} />
 
         {/* Staff & Usuarios */}
         <StaffSection onPress={() => router.push('/private/tabs/admin/users')} />

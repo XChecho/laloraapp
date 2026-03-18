@@ -24,29 +24,22 @@ export const CanchaVentasContent: React.FC<CanchaVentasContentProps> = ({
   return (
     <View className="px-6 mt-4">
       <View className="flex-row items-center justify-between mb-6">
-        <View className="flex-row items-center bg-slate-100 p-1.5 rounded-2xl border border-lora-border/10">
-          <View className="px-4 py-2 rounded-xl flex-row items-center bg-white shadow-sm">
-            <Ionicons name="list" size={16} color={primaryColor} className="mr-2" />
-            <Text className="font-InterBold text-xs text-lora-text">Activas</Text>
-            {accounts.length > 0 && (
-              <View className="ml-2 bg-lora-primary px-1.5 py-0.5 rounded-md">
-                <Text className="text-[10px] text-white font-InterBold">{accounts.length}</Text>
-              </View>
-            )}
-          </View>
-          
-          <Pressable 
-            onPress={onOpenHistory}
-            className="px-4 py-2 rounded-xl flex-row items-center active:bg-slate-200"
-          >
-            <Ionicons name="time" size={16} color="#94A3B8" className="mr-2" />
-            <Text className="font-InterBold text-xs text-slate-500">Ver Historial</Text>
-          </Pressable>
+        <View className="flex-row items-center">
+          <Text className="text-2xl font-InterBold text-lora-text mr-3">Órdenes Activas</Text>
+          {accounts.length > 0 && (
+            <View className="bg-lora-primary px-2.5 py-1 rounded-full shadow-sm">
+              <Text className="text-xs text-white font-InterBold">{accounts.length}</Text>
+            </View>
+          )}
         </View>
-        
-        <Text className="text-xs font-InterBold text-lora-primary bg-emerald-50 px-3 py-1.5 rounded-xl uppercase">
-          {accounts.length} Pendientes
-        </Text>
+
+        <Pressable 
+          onPress={onOpenHistory}
+          className="flex-row items-center bg-white px-4 py-2.5 rounded-2xl border border-lora-border/20 shadow-sm active:opacity-80"
+        >
+          <Ionicons name="time" size={18} color={primaryColor} className="mr-2" />
+          <Text className="font-InterBold text-sm text-lora-text">Ver Historial</Text>
+        </Pressable>
       </View>
 
       {accounts.length > 0 ? (

@@ -39,9 +39,6 @@ export const CanchaHistoryModal: React.FC<CanchaHistoryModalProps> = ({
             {historyAccounts.length > 0 ? (
               historyAccounts.map(acc => (
                 <View key={acc.id || Math.random()} className="bg-white rounded-[28px] p-5 mb-4 border border-lora-border/10 shadow-sm opacity-90 overflow-hidden relative">
-                  <View style={{ position: 'absolute', right: -15, top: 15, backgroundColor: '#F1F5F9', paddingVertical: 4, paddingHorizontal: 25, transform: [{ rotate: '45deg' }] }}>
-                    <Text style={{ fontSize: 9, fontFamily: 'InterBold', color: '#64748B', textAlign: 'center' }}>PAGADA</Text>
-                  </View>
                   <View className="flex-row justify-between items-start mb-2">
                     <View className="flex-1 mr-4">
                       <View className="flex-row items-center mb-1">

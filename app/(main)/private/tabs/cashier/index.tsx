@@ -18,6 +18,7 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenHeader } from '@src/components/ui/ScreenHeader';
 
 const TableCard = ({ table }: { table: Table }) => {
   const isOccupied = table.status === 'OCUPADA';
@@ -131,16 +132,15 @@ const CashierScreen = () => {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-100">
-      {/* Header */}
-      <View className="bg-white px-5 py-4 flex-row justify-between items-center border-b border-gray-200">
-        <View>
-          <Text className="text-xl font-InterBold text-lora-text">Caja - Gestión</Text>
-          <Text className="text-xs font-InterMedium text-lora-primary">Cajero: Juan Pérez • Turno Tarde</Text>
-        </View>
-        <Pressable className="bg-lora-primary/10 p-2 rounded-full">
-          <Ionicons name="person-circle" size={28} color="#059432" />
-        </Pressable>
-      </View>
+      <ScreenHeader 
+        title="Gestión de Caja" 
+        subtitle="Turno Tarde • Juan Pérez" 
+        rightElement={
+          <Pressable className="bg-lora-primary/10 w-11 h-11 rounded-2xl items-center justify-center active:opacity-70">
+            <Ionicons name="person-circle" size={28} color="#0A873A" />
+          </Pressable>
+        }
+      />
 
       {/* Zone Tabs */}
       <View className="bg-white px-5 flex-row border-b border-gray-200">

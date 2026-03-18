@@ -1,9 +1,10 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { ZoomOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KitchenItem, KitchenOrder, useKitchenStore } from '../../../../../src/store/useKitchenStore';
+import { ScreenHeader } from '@src/components/ui/ScreenHeader';
 
 const KitchenScreen = () => {
   const [activeTab, setActiveTab] = useState<'ACTIVOS' | 'LISTOS'>('ACTIVOS');
@@ -15,44 +16,32 @@ const KitchenScreen = () => {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-slate-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between bg-white border-b border-slate-200 p-4 shadow-sm">
-        <View className="flex-row items-center gap-4">
-          <View className="flex size-10 items-center justify-center bg-slate-100 rounded-lg">
-            <MaterialIcons name="menu" size={24} color="#0f172a" />
-          </View>
-          <View>
-            <Text className="text-xl font-bold text-slate-900">Tablero de Cocina</Text>
-            <Text className="text-xs text-slate-500 font-medium uppercase tracking-wider">Restaurante Central</Text>
-          </View>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <View className="hidden md:flex flex-col items-end mr-4">
-            <Text className="text-sm font-bold text-green-600">Sistema Online</Text>
-            <Text className="text-xs text-slate-400">Última sinc: Ahora</Text>
-          </View>
-          <Pressable className="flex size-12 items-center justify-center rounded-xl bg-slate-100">
-            <MaterialIcons name="refresh" size={24} color="#0f172a" />
+      <ScreenHeader 
+        title="Cocina" 
+        subtitle="Restaurante La Lora"
+        rightElement={
+          <Pressable className="bg-white w-11 h-11 rounded-2xl items-center justify-center border border-gray-100 shadow-sm active:opacity-70">
+            <Ionicons name="refresh" size={22} color="#1B2332" />
           </Pressable>
-        </View>
-      </View>
+        }
+      />
 
       {/* Navigation Tabs */}
       <View className="bg-white px-4 border-b border-slate-200">
         <View className="flex-row gap-8">
           <Pressable
             onPress={() => setActiveTab('ACTIVOS')}
-            className={`border-b-[3px] pb-3 pt-4 ${activeTab === 'ACTIVOS' ? 'border-green-600' : 'border-transparent'}`}
+            className={`border-b-[3px] pb-3 pt-4 ${activeTab === 'ACTIVOS' ? 'border-lora-primary' : 'border-transparent'}`}
           >
-            <Text className={`text-sm font-bold ${activeTab === 'ACTIVOS' ? 'text-green-600' : 'text-slate-500'}`}>
+            <Text className={`text-sm font-bold ${activeTab === 'ACTIVOS' ? 'text-lora-primary' : 'text-slate-500'}`}>
               Activos ({orders.filter(o => o.status === 'ACTIVE').length})
             </Text>
           </Pressable>
           <Pressable
             onPress={() => setActiveTab('LISTOS')}
-            className={`border-b-[3px] pb-3 pt-4 ${activeTab === 'LISTOS' ? 'border-green-600' : 'border-transparent'}`}
+            className={`border-b-[3px] pb-3 pt-4 ${activeTab === 'LISTOS' ? 'border-lora-primary' : 'border-transparent'}`}
           >
-            <Text className={`text-sm font-bold ${activeTab === 'LISTOS' ? 'text-green-600' : 'text-slate-500'}`}>
+            <Text className={`text-sm font-bold ${activeTab === 'LISTOS' ? 'text-lora-primary' : 'text-slate-500'}`}>
               Listos ({orders.filter(o => o.status === 'READY').length})
             </Text>
           </Pressable>
