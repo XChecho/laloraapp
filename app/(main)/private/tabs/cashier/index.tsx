@@ -59,7 +59,7 @@ const TableCard = ({ table }: { table: Table }) => {
           <>
             <Pressable
               className="flex-1 bg-gray-100 py-3 rounded-xl items-center justify-center active:opacity-70"
-              onPress={() => router.push(`/(main)/private/tabs/waitres/${table.id}`)}
+              onPress={() => router.push({ pathname: `/(main)/private/tabs/waitres/${table.id}`, params: { from: 'cashier' } })}
             >
               <Text className="text-lora-text font-InterBold text-sm">Detalles</Text>
             </Pressable>
@@ -73,7 +73,7 @@ const TableCard = ({ table }: { table: Table }) => {
         ) : (
           <Pressable
             className="w-full bg-lora-primary py-3 rounded-xl items-center justify-center active:opacity-70"
-            onPress={() => router.push(`/(main)/private/tabs/waitres/${table.id}`)}
+            onPress={() => router.push({ pathname: `/(main)/private/tabs/waitres/${table.id}`, params: { from: 'cashier' } })}
           >
             <Text className="text-white font-InterBold text-sm">Abrir Mesa</Text>
           </Pressable>

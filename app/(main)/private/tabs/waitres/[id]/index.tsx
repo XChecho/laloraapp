@@ -21,10 +21,18 @@ const getTimeElapsed = (dateString: string) => {
 };
 
 const TableDetailsScreen = () => {
-  const { id } = useLocalSearchParams();
+  const { id, from } = useLocalSearchParams();
   const router = useRouter();
   const openModal = useModalStore(state => state.openModal);
   const [now, setNow] = useState(new Date());
+
+  const handleBack = () => {
+    if (from === 'cashier') {
+      router.push('/(main)/private/tabs/cashier' as any);
+    } else {
+      router.back();
+    }
+  };
 
   // Update timers every minute
   useEffect(() => {
@@ -38,7 +46,7 @@ const TableDetailsScreen = () => {
     return (
       <SafeAreaView className="flex-1 items-center justify-center">
         <Text className="font-InterBold text-lg">Mesa no encontrada</Text>
-        <Pressable onPress={() => router.back()} className="mt-4">
+        <Pressable onPress={handleBack} className="mt-4">
           <Text className="text-lora-primary font-InterBold">Regresar</Text>
         </Pressable>
       </SafeAreaView>
@@ -60,7 +68,7 @@ const TableDetailsScreen = () => {
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="bg-white px-5 py-4 flex-row items-center border-b border-gray-100">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
+        <Pressable onPress={handleBack} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="#1B2332" />
         </Pressable>
         <View className="flex-1 ml-2">

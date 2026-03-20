@@ -49,17 +49,17 @@ export const CashierModal = () => {
               <View className="bg-gray-50 rounded-2xl p-4 mb-6">
                 {DENOMINATIONS.map((denom) => (
                   <View key={denom} className="flex-row items-center justify-between py-4 border-b border-gray-200/50">
-                    <View className="w-24">
+                    <View className="w-28">
                         <Text className="font-InterBold text-lora-text text-base">{formatCOP(denom)}</Text>
                     </View>
                     <TextInput
-                      className="flex-1 bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-right font-InterBold text-lg"
+                      className="w-16 bg-white border-2 border-gray-200 rounded-xl px-2 py-2 text-center font-InterBold text-base"
                       keyboardType="numeric"
                       placeholder="0"
                       value={counts[denom] || ''}
                       onChangeText={(val) => setCounts({ ...counts, [denom]: val })}
                     />
-                    <View className="w-32 items-end ml-3">
+                    <View className="flex-1 items-end ml-3">
                         <Text className="font-InterBold text-lora-primary text-base">
                         {formatCOP((parseInt(counts[denom]) || 0) * denom)}
                         </Text>

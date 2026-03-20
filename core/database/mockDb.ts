@@ -111,8 +111,28 @@ export const MOCK_DB = {
   ] as CanchaAccount[],
 
   canchaHistory: [
-    { id: 'H1', name: 'Miguel Ángel', summary: '3 Cerveza Club Colombia, 2 Empanada Carne', total: 26000, closedAt: '15:30', items: [] },
-    { id: 'H2', name: 'Laura Restrepo', summary: '1 Gatorade, 1 Maní', total: 8500, closedAt: '16:15', items: [] },
+    { 
+      id: 'H1', 
+      name: 'Miguel Ángel', 
+      summary: '3 Cerveza Club Colombia, 2 Empanada Carne', 
+      total: 26000, 
+      closedAt: '15:30', 
+      items: [
+        { id: 'b3', name: 'Cerveza Club Colombia', price: 6000, qty: 3 },
+        { id: 'p1', name: 'Empanada Carne', price: 4000, qty: 2 }
+      ] 
+    },
+    { 
+      id: 'H2', 
+      name: 'Laura Restrepo', 
+      summary: '1 Gatorade, 1 Maní', 
+      total: 8500, 
+      closedAt: '16:15', 
+      items: [
+        { id: 'b1', name: 'Gatorade', price: 6000, qty: 1 },
+        { id: 'm1', name: 'Maní Especial', price: 2500, qty: 1 }
+      ] 
+    },
   ] as CanchaAccount[],
 
   tables: [
