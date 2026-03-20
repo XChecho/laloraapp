@@ -17,7 +17,7 @@ const TabsLayout = () => {
           headerShown: false,
           tabBarStyle: {
             paddingBottom: insets.bottom,
-            height: 55 + insets.bottom,
+            height: 65 + insets.bottom,
             paddingTop: 8,
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
