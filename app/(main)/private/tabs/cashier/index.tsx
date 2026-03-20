@@ -3,7 +3,8 @@ import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useModalStore } from '@store/useModalStore';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import { useAdminStore } from '@store/admin/useAdminStore';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   Alert,
   FlatList,
@@ -83,7 +84,8 @@ const TableCard = ({ table }: { table: Table }) => {
 };
 
 const CashierScreen = () => {
-  const [activeZone, setActiveZone] = useState<'SALON' | 'TERRAZA'>('SALON');
+  const { zones, tables: adminTables } = useAdminStore();
+  const [activeZoneId, setActiveZoneId] = useState<string>(zones[0]?.id || '1');
   const [isExpanded, setIsExpanded] = useState(true);
   const openModal = useModalStore(state => state.openModal);
 
@@ -125,7 +127,13 @@ const CashierScreen = () => {
     scrollOffset.current = currentOffset;
   };
 
-  const filteredTables = MOCK_DB.tables.filter(t => t.zone === activeZone);
+  const filteredTables = useMemo(() => {
+    const activeZone = zones.find(z => z.id === activeZoneId);
+    if (!activeZone) return [];
+    
+    return MOCK_DB.tables.filter(t => t.zone === activeZone.dbKey);
+  }, [activeZoneId, zones]);
+
   const totalSales = MOCK_DB.tables.reduce((acc, t) => acc + t.total, 0);
   const occupiedCount = MOCK_DB.tables.filter(t => t.status === 'OCUPADA').length;
   const freeCount = MOCK_DB.tables.filter(t => t.status === 'LIBRE').length;
@@ -135,27 +143,20 @@ const CashierScreen = () => {
       <ScreenHeader 
         title="Gestión de Caja" 
         subtitle="Turno Tarde • Juan Pérez" 
-        rightElement={
-          <Pressable className="bg-lora-primary/10 w-11 h-11 rounded-2xl items-center justify-center active:opacity-70">
-            <Ionicons name="person-circle" size={28} color="#0A873A" />
-          </Pressable>
-        }
       />
-
       {/* Zone Tabs */}
       <View className="bg-white px-5 flex-row border-b border-gray-200">
-        <Pressable
-          onPress={() => setActiveZone('SALON')}
-          className={`py-3 mr-6 border-b-4 ${activeZone === 'SALON' ? 'border-lora-primary' : 'border-transparent'}`}
-        >
-          <Text className={`font-InterBold ${activeZone === 'SALON' ? 'text-lora-primary' : 'text-gray-400'}`}>Salón Principal</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setActiveZone('TERRAZA')}
-          className={`py-3 border-b-4 ${activeZone === 'TERRAZA' ? 'border-lora-primary' : 'border-transparent'}`}
-        >
-          <Text className={`font-InterBold ${activeZone === 'TERRAZA' ? 'text-lora-primary' : 'text-gray-400'}`}>Terraza Exterior</Text>
-        </Pressable>
+        {zones.map((zone) => (
+          <Pressable
+            key={zone.id}
+            onPress={() => setActiveZoneId(zone.id)}
+            className={`py-3 mr-6 border-b-4 ${activeZoneId === zone.id ? 'border-lora-primary' : 'border-transparent'}`}
+          >
+            <Text className={`font-InterBold ${activeZoneId === zone.id ? 'text-lora-primary' : 'text-gray-400'}`}>
+              {zone.name}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       {/* Table Grid */}

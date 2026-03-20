@@ -106,7 +106,7 @@ const WaitresScreen = () => {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 40, paddingTop: 10 }}
       >
         {zones.map((zone) => {
           const zoneAdminTables = adminTables.filter(t => t.zoneId === zone.id);

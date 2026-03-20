@@ -13,15 +13,27 @@ export const CanchaTabs: React.FC<CanchaTabsProps> = ({ activeTab, onTabChange, 
       <View style={{ backgroundColor: 'rgba(255,255,255,0.8)', padding: 6, borderRadius: 24, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' }}>
         <Pressable
           onPress={() => requestAnimationFrame(() => onTabChange('reservas'))}
-          style={{ flex: 1, paddingVertical: 12, borderRadius: 20, alignItems: 'center', backgroundColor: activeTab === 'reservas' ? primaryColor : 'transparent' }}
+          style={{ flex: 1, paddingVertical: 12, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'reservas' ? primaryColor : 'transparent' }}
         >
-          <Text style={{ fontFamily: 'InterBold', color: activeTab === 'reservas' ? 'white' : '#94A3B8' }}>Reservas</Text>
+          <Text 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            style={{ fontFamily: 'InterBold', fontSize: 14, textAlign: 'center', color: activeTab === 'reservas' ? 'white' : '#94A3B8' }}
+          >
+            Reservas
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => requestAnimationFrame(() => onTabChange('ventas'))}
-          style={{ flex: 1, paddingVertical: 12, borderRadius: 20, alignItems: 'center', backgroundColor: activeTab === 'ventas' ? primaryColor : 'transparent' }}
+          style={{ flex: 1, paddingVertical: 12, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'ventas' ? primaryColor : 'transparent' }}
         >
-          <Text style={{ fontFamily: 'InterBold', color: activeTab === 'ventas' ? 'white' : '#94A3B8' }}>Ventas Individuales</Text>
+          <Text 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            style={{ fontFamily: 'InterBold', fontSize: 14, textAlign: 'center', color: activeTab === 'ventas' ? 'white' : '#94A3B8' }}
+          >
+            Ventas Individuales
+          </Text>
         </Pressable>
       </View>
     </View>

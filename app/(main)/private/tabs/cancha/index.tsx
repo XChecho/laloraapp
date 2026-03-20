@@ -171,7 +171,7 @@ const CanchaScreen = () => {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 120 : 80 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 120 : 40 }}>
         {activeTab === 'reservas' ? (
           <View className="px-6 mt-4">
             <View className="flex-row items-center justify-between mb-6">

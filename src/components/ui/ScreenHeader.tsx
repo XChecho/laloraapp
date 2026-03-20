@@ -14,7 +14,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   rightElement 
 }) => {
   return (
-    <View className="flex-row items-center justify-between px-6 pt-4 pb-2 bg-transparent">
+    <View className="flex-row items-center justify-between px-6 pt-4 pb-4 bg-lora-bg">
       <View className="flex-1 mr-4">
         <Text className="text-2xl font-InterBold text-lora-text" numberOfLines={1}>{title}</Text>
         <Text className="text-xs font-InterMedium text-lora-primary uppercase tracking-widest mt-0.5">

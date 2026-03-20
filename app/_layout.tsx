@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { setBackgroundColorAsync } from "expo-system-ui";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -60,6 +61,7 @@ export default function RootLayout() {
         }}
       >
         <SafeAreaProvider>
+          <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }} />
           <GeneralModals />
         </SafeAreaProvider>

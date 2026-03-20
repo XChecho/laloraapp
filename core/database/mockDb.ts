@@ -141,5 +141,9 @@ export const MOCK_DB = {
       zone: 'SALON',
       openedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString()
     },
+    { id: 4, name: 'MESA 04', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [], zone: 'SALON' },
+    { id: 5, name: 'TERRAZA 01', status: 'OCUPADA', total: 85000, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [], zone: 'TERRAZA', openedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
+    { id: 6, name: 'TERRAZA 02', status: 'LIBRE', total: 0, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [], zone: 'TERRAZA' },
+    { id: 7, name: 'TERRAZA 03', status: 'OCUPADA', total: 23000, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', currentOrder: [], zone: 'TERRAZA', openedAt: new Date(Date.now() - 1000 * 60 * 20).toISOString() },
   ] as Table[]
 };
