@@ -1,50 +1,58 @@
-# Welcome to your Expo app 👋
+# Laloraapp 📱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Restaurant & Sports Court Management Mobile Application built with Expo and React Native.
 
-## Get started
+## Features
+
+- **Admin Dashboard**: Reports, user management, menus, tables
+- **Kitchen**: Real-time order tracking with delay warnings
+- **Waitress**: Order creation and management
+- **Cashier**: Billing and shift closures
+- **Cancha**: Sports court reservations and sales tracking
+
+## Tech Stack
+
+- **Framework**: Expo SDK 54, React Native 0.81.5
+- **Language**: TypeScript
+- **Navigation**: Expo Router, React Navigation
+- **Styling**: NativeWind, Tailwind CSS, Reanimated
+- **State**: Zustand
+- **Data**: TanStack React Query
+
+## Getting Started
 
 1. Install dependencies
-
    ```bash
    npm install
    ```
 
 2. Start the app
-
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Run on device/emulator
+   - Android: `npx expo run:android`
+   - iOS: `npx expo run:ios`
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Project Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+app/           # Expo Router pages
+src/
+  components/ # UI components
+  store/      # Zustand stores
+  assets/    # Fonts, images
+core/         # Adapters, database, helpers
+constants/   # Theming, constants
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Architecture
 
-## Learn more
+- Feature-based modular architecture
+- File-based routing with Expo Router
+- Role-based access (Admin, Cashier, Kitchen, Waitress, CanchaManager)
 
-To learn more about developing your project with Expo, look at the following resources:
+## License
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+MIT
