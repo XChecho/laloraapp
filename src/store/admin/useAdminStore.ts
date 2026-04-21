@@ -20,7 +20,6 @@ interface AdminState {
   users: any[];
   zones: AdminZone[];
   tables: AdminTable[];
-  categories: any[];
   expenses: any[];
   
   // Zones Actions
@@ -53,7 +52,6 @@ export const useAdminStore = create<AdminState>((set) => ({
   users: [],
   zones: initialZones,
   tables: initialTables,
-  categories: [],
   expenses: [],
   
   addZone: (zone) => set((state) => ({

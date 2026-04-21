@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
 import { loginAction } from '@core/actions/login.action';
+import { useAlertStore } from './useAlertStore';
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -10,9 +11,12 @@ interface AuthState {
   userType: string | null;
   token: string | null;
   email: string | null;
+  phone: string | null;
+  profileImage: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuthStatus: () => Promise<void>;
+  updateProfile: (data: Partial<AuthState>) => Promise<void>;
 }
 
 const STORAGE_KEYS = {
@@ -21,6 +25,8 @@ const STORAGE_KEYS = {
   userType: 'userType',
   token: 'token',
   email: 'email',
+  phone: 'phone',
+  profileImage: 'profileImage',
   isLoggedIn: 'isLoggedIn',
 };
 
@@ -32,7 +38,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   userType: null,
   token: null,
   email: null,
+  phone: null,
+  profileImage: null,
   login: async (email: string, password: string) => {
+    const showAlert = useAlertStore.getState().showAlert;
+    
     try {
       const userData = await loginAction(email, password);
       
@@ -52,9 +62,20 @@ export const useAuthStore = create<AuthState>((set) => ({
         email: userData.email,
       });
 
+      showAlert({
+        type: 'success',
+        title: 'Bienvenido',
+        description: `${userData.firstName} ${userData.lastName}`,
+      });
+
       return true;
     } catch (error) {
       console.error('Login failed:', error);
+      showAlert({
+        type: 'error',
+        title: 'Credenciales incorrectas',
+        description: 'Por favor verifica tu email y contraseña',
+      });
       return false;
     }
   },
@@ -64,6 +85,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.userType);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.token);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.email);
+    await SecureStorageAdapter.removeItem(STORAGE_KEYS.phone);
+    await SecureStorageAdapter.removeItem(STORAGE_KEYS.profileImage);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.isLoggedIn);
 
     set({
@@ -73,6 +96,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       userType: null,
       token: null,
       email: null,
+      phone: null,
+      profileImage: null,
     });
   },
   checkAuthStatus: async () => {
@@ -82,6 +107,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     const userType = await SecureStorageAdapter.getItem(STORAGE_KEYS.userType);
     const token = await SecureStorageAdapter.getItem(STORAGE_KEYS.token);
     const email = await SecureStorageAdapter.getItem(STORAGE_KEYS.email);
+    const phone = await SecureStorageAdapter.getItem(STORAGE_KEYS.phone);
+    const profileImage = await SecureStorageAdapter.getItem(STORAGE_KEYS.profileImage);
 
     set({
       isLoggedIn: isLoggedIn === 'true',
@@ -91,6 +118,27 @@ export const useAuthStore = create<AuthState>((set) => ({
       userType,
       token,
       email,
+      phone,
+      profileImage,
     });
+  },
+  updateProfile: async (data) => {
+    if (data.firstName !== undefined) {
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.firstName, data.firstName || '');
+    }
+    if (data.lastName !== undefined) {
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.lastName, data.lastName || '');
+    }
+    if (data.phone !== undefined) {
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.phone, data.phone || '');
+    }
+    if (data.profileImage !== undefined) {
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.profileImage, data.profileImage || '');
+    }
+
+    set((state) => ({
+      ...state,
+      ...data,
+    }));
   },
 }));

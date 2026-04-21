@@ -32,10 +32,13 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      await login();
-      router.replace('/private/tabs/waitres' as any);
+      const success = await login(email, password);
+      if (success) {
+        router.replace('/private/tabs/waitres' as any);
+      }
     } catch (error) {
       console.error(error);
+      alert('Error al iniciar sesión. Verifica tus credenciales.');
     } finally {
       setIsLoading(false);
     }

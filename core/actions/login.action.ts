@@ -1,11 +1,13 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface LoginResponse {
+  token: string;
   firstName: string;
   lastName: string;
   userType: string;
-  token: string;
   email: string;
+  phone?: string;
+  profileImage?: string;
 }
 
 export interface LoginRequest {
@@ -22,18 +24,21 @@ export async function loginAction(email: string, password: string): Promise<Logi
     body: JSON.stringify({ email, password }),
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Login failed' }));
-    throw new Error(error.message || 'Login failed');
+  const json = await response.json();
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || 'Login failed');
   }
 
-  const data = await response.json();
+  const data = json.data;
   
   return {
     firstName: data.firstName,
     lastName: data.lastName,
     userType: data.userType,
-    token: data.token,
-    email: data.email,
+    token: data.access_token,
+    email: email,
+    phone: data.phone,
+    profileImage: data.profileImage,
   };
 }

@@ -30,6 +30,52 @@ High-performance Expo React Native mobile application using modular feature-base
 - **Context:** Maintain a clean context. Use surgical reads (`read_file` with ranges) and parallel sub-agents (e.g., `codebase_investigator`) for maximum efficiency.
 - **Token Saver:** Prioritize token economy. Be extremely concise. Use "caveman" style for non-vital responses (e.g., "tasks done" instead of "all tasks completed successfully"). Avoid unnecessary explanations. If "yes" suffices, say only "yes".
 
+## 📦 API Actions & Hooks Structure
+All API actions MUST use `fetchGeneral` from `core/actions/api/generalActions.ts`. Never create direct fetch calls.
+
+### Folder Structure
+```
+core/actions/
+├── api/
+│   └── generalActions.ts          (fetchGeneral wrapper)
+├── admin/
+│   ├── categories.ts              (GET/POST/PUT/DELETE /admin/categories)
+│   └── products.ts               (GET/POST/PUT/DELETE /admin/products)
+├── menu/
+│   ├── categories.ts             (GET /categories)
+│   └── products.ts             (GET /categories/:id/products)
+```
+
+### TanStack Query Hooks
+All data fetching with cache MUST use hooks from `src/hooks/`:
+```
+src/hooks/
+├── useAdminCategories.ts
+├── useAdminProducts.ts
+├── useMenuCategories.ts
+└── useMenuProducts.ts
+```
+
+### API Response Format
+Backend returns data directly (no wrapper):
+- GET 200 -> { data } or [ { data } ]
+- POST 201 -> { data }
+- PUT 200 -> { data }
+- DELETE 200 -> { data }
+
+## 🔧 RTK Terminal Commands
+- `ls` / `ls -la` → `rtk ls`
+- `find` → `rtk find` (accepts native flags like `-name`, `-type`)
+- `cat <file>` → `rtk read <file>`
+- `grep <pattern>` → `rtk grep <pattern>`
+- Any `git` command → `rtk git <subcommand>`
+- `npm run <script>` → `rtk npm run <script>`
+- `npx <tool>` → `rtk npx <tool>`
+- `eslint` / `npx eslint` → `rtk lint`
+- `tsc` / `npx tsc` → `rtk tsc`
+- Any formatter → `rtk format`
+- `curl` → `rtk curl` (auto JSON detection)
+
 ---
 
 ## 📂 Project Structure Snapshot

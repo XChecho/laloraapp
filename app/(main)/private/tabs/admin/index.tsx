@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdminSummaryCard } from '@src/components/admin/AdminSummaryCard';
 import { InventorySection } from '@src/components/admin/InventorySection';
 import { ManagementTipSection, StaffSection } from '@src/components/admin/StaffSection';
+import { MenuSection } from '@src/components/admin/MenuSection';
 import { RecentClosuresSection } from '@src/components/admin/RecentClosuresSection';
 import { TablesSection } from '@src/components/admin/TablesSection';
 import { ScreenHeader } from '@src/components/ui/ScreenHeader';
@@ -65,6 +66,9 @@ const AdminDashboard = () => {
 
         {/* Recent Closures */}
         <RecentClosuresSection />
+
+        {/* Menu Management */}
+        <MenuSection onPress={() => router.push('/private/tabs/admin/menus')} />
 
         {/* Tables & Spaces */}
         <TablesSection onPress={() => router.push('/private/tabs/admin/tables')} />
