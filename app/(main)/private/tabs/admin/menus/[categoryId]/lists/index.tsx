@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCategoryLists, useCreateModifier, useDeleteModifier, useAddModifierOption, useDeleteModifierOption } from '@src/hooks/useCategoryLists';
+import { useCategoryLists, useCreateModifier, useDeleteModifier, useAddModifierOption, useDeleteModifierOption, useRestockModifierOption } from '@src/hooks/useCategoryLists';
 import { useAdminCategories } from '@src/hooks/useAdminCategories';
 import { CategoryModifier, ModifierOption } from '@core/actions/admin/category-lists';
 
@@ -26,6 +26,7 @@ const CategoryListsScreen = () => {
   const deleteModifier = useDeleteModifier();
   const addOption = useAddModifierOption();
   const deleteOption = useDeleteModifierOption();
+  const restockOption = useRestockModifierOption();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [optionModalVisible, setOptionModalVisible] = useState(false);
@@ -37,6 +38,8 @@ const CategoryListsScreen = () => {
   
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionPrice, setNewOptionPrice] = useState('');
+  const [newOptionStock, setNewOptionStock] = useState('20');
+  const [optionError, setOptionError] = useState('');
 
   const category = categories?.find((c) => c.id === categoryId);
   const modifiers = categoryData?.modifiers || [];
@@ -78,24 +81,35 @@ const CategoryListsScreen = () => {
   };
 
   const handleAddOption = async () => {
-    if (!newOptionName.trim() || !newOptionPrice.trim() || !selectedModifier) return;
-
-    const price = parseFloat(newOptionPrice);
-    if (isNaN(price)) {
-      Alert.alert('Error', 'Precio inválido');
+    if (!newOptionName.trim() || !selectedModifier) {
+      setOptionError('El nombre es obligatorio');
       return;
     }
 
-    try {
+    if (!newOptionPrice.trim()) {
+      setOptionError('El precio es obligatorio');
+      return;
+    }
+
+    const price = parseFloat(newOptionPrice);
+    if (isNaN(price)) {
+      setOptionError('Precio inválido');
+      return;
+    }
+
+        try {
+      const stockValue = parseInt(newOptionStock, 10) || 20;
       await addOption.mutateAsync({
         categoryId: categoryId || '',
         modifierId: selectedModifier.id,
-        data: { name: newOptionName.trim(), price },
+        data: { name: newOptionName.trim(), priceExtra: price, stock: stockValue },
       });
       setOptionModalVisible(false);
       setNewOptionName('');
       setNewOptionPrice('');
+      setNewOptionStock('20');
       setSelectedModifier(null);
+      setOptionError('');
     } catch (error) {
       Alert.alert('Error', 'No se pudo agregar la opción');
     }
@@ -122,6 +136,10 @@ const CategoryListsScreen = () => {
 
   const openOptionModal = (modifier: CategoryModifier) => {
     setSelectedModifier(modifier);
+    setNewOptionName('');
+    setNewOptionPrice('');
+    setNewOptionStock('20');
+    setOptionError('');
     setOptionModalVisible(true);
   };
 
@@ -166,13 +184,23 @@ const CategoryListsScreen = () => {
             {item.options.map((option) => (
               <Pressable 
                 key={option.id}
-                className="flex-row items-center bg-lora-bg px-3 py-2 rounded-lg"
+                className={`flex-row items-center bg-lora-bg px-3 py-2 rounded-lg ${option.stock <= 5 ? 'border border-red-300' : ''}`}
                 onLongPress={() => handleDeleteOption(item.id, option)}
               >
-                <Text className="text-sm font-InterMedium text-lora-text">{option.name}</Text>
-                {option.price > 0 && (
-                  <Text className="text-sm text-lora-primary ml-2">+${option.price}</Text>
-                )}
+                <View className="flex-col">
+                  <View className="flex-row items-center">
+                    <Text className="text-sm font-InterMedium text-lora-text">{option.name}</Text>
+                    {option.priceExtra > 0 && (
+                      <Text className="text-sm text-lora-primary ml-2">+${option.priceExtra}</Text>
+                    )}
+                  </View>
+                  <View className="flex-row items-center mt-1">
+                    <Ionicons name="cube-outline" size={10} color={option.stock <= 5 ? '#EF4444' : '#94A3B8'} />
+                    <Text className={`text-xs ml-1 ${option.stock <= 5 ? 'text-red-500 font-InterBold' : 'text-lora-text-muted'}`}>
+                      Stock: {option.stock}
+                    </Text>
+                  </View>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -306,10 +334,22 @@ const CategoryListsScreen = () => {
             <Text className="text-sm font-InterMedium text-lora-text-muted mb-1">Precio adicional</Text>
             <TextInput
               value={newOptionPrice}
-              onChangeText={setNewOptionPrice}
+              onChangeText={(text) => {
+                setNewOptionPrice(text);
+                if (optionError) setOptionError('');
+              }}
               placeholder="0"
               keyboardType="numeric"
-              className="bg-lora-bg border border-lora-border/20 rounded-xl p-3 mb-6"
+              className="bg-lora-bg border border-lora-border/20 rounded-xl p-3 mb-3"
+            />
+
+            <Text className="text-sm font-InterMedium text-lora-text-muted mb-1">Stock inicial</Text>
+            <TextInput
+              value={newOptionStock}
+              onChangeText={setNewOptionStock}
+              placeholder="20"
+              keyboardType="numeric"
+              className="bg-lora-bg border border-lora-border/20 rounded-xl p-3 mb-3"
             />
 
             <View className="flex-row gap-3">

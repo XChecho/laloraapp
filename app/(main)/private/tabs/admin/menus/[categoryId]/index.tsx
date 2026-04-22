@@ -80,7 +80,7 @@ const CategoryProductsScreen = () => {
 
   const renderProduct = ({ item }: { item: AdminProduct }) => (
     <Pressable 
-      className={`bg-white rounded-2xl p-4 mb-3 border border-lora-border/20 shadow-sm flex-row items-center ${!item.enabled ? 'opacity-60' : ''}`}
+      className={`bg-white rounded-2xl p-4 mb-3 border border-lora-border/20 shadow-sm flex-row items-center ${!item.available ? 'opacity-60' : ''}`}
     >
       <View className="w-16 h-16 rounded-xl bg-gray-100 items-center justify-center overflow-hidden mr-4">
         {item.image ? (
@@ -106,10 +106,10 @@ const CategoryProductsScreen = () => {
 
       <View className="flex-row items-center gap-2">
         <Pressable 
-          className={`w-10 h-6 rounded-full px-1 justify-center ${item.enabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
-          onPress={() => handleToggleAvailable(item.id, item.enabled)}
+          className={`w-10 h-6 rounded-full px-1 justify-center ${item.available ? 'bg-emerald-500' : 'bg-gray-300'}`}
+          onPress={() => handleToggleAvailable(item.id, item.available)}
         >
-          <View className={`w-4 h-4 bg-white rounded-full ${item.enabled ? 'self-end' : 'self-start'}`} />
+          <View className={`w-4 h-4 bg-white rounded-full ${item.available ? 'self-end' : 'self-start'}`} />
         </Pressable>
 
         <Pressable 

@@ -11,7 +11,8 @@ export interface CategoryModifier {
 export interface ModifierOption {
   id: string;
   name: string;
-  price: number;
+  priceExtra: number;
+  stock: number;
 }
 
 export interface CategoryWithModifiers {
@@ -36,7 +37,8 @@ export interface UpdateModifierInput {
 
 export interface CreateModifierOptionInput {
   name: string;
-  price: number;
+  priceExtra: number;
+  stock?: number;
 }
 
 export const categoryListsApi = {
@@ -54,6 +56,9 @@ export const categoryListsApi = {
 
   addModifierOption: (categoryId: string, modifierId: string, data: CreateModifierOptionInput) =>
     fetchGeneral<ModifierOption>(`admin/categories/${categoryId}/lists/${modifierId}/options`, 'POST', data),
+
+  restockModifierOption: (categoryId: string, modifierId: string, optionId: string, quantity: number) =>
+    fetchGeneral<ModifierOption>(`admin/categories/${categoryId}/lists/${modifierId}/options/${optionId}/restock`, 'PUT', { quantity }),
 
   deleteModifierOption: (categoryId: string, modifierId: string, optionId: string) =>
     fetchGeneral<ModifierOption>(`admin/categories/${categoryId}/lists/${modifierId}/options/${optionId}`, 'DELETE'),

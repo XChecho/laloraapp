@@ -76,3 +76,15 @@ export function useDeleteModifierOption() {
     },
   });
 }
+
+export function useRestockModifierOption() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ categoryId, modifierId, optionId, quantity }: { categoryId: string; modifierId: string; optionId: string; quantity: number }) =>
+      categoryListsApi.restockModifierOption(categoryId, modifierId, optionId, quantity),
+    onSuccess: (_, { categoryId }) => {
+      queryClient.invalidateQueries({ queryKey: [...CATEGORY_LISTS_KEY, categoryId] });
+    },
+  });
+}
