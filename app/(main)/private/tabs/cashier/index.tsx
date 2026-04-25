@@ -3,7 +3,9 @@ import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useModalStore } from '@store/useModalStore';
 import { useRouter } from 'expo-router';
-import { useAdminStore } from '@store/admin/useAdminStore';
+import { useZones, useTables } from '@hooks/useZones';
+import { Zone } from '@core/actions/zones';
+import { Table as TableData } from '@core/actions/tables';
 import React, { useRef, useState, useMemo } from 'react';
 import {
   Alert,
@@ -21,15 +23,15 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@src/components/ui/ScreenHeader';
 
-const TableCard = ({ table }: { table: Table }) => {
-  const isOccupied = table.status === 'OCUPADA';
+const TableCard = ({ table }: { table: TableData }) => {
+  const isOccupied = table.status === 'OCCUPIED';
   const router = useRouter();
   const openModal = useModalStore(state => state.openModal);
 
   const handleCloseTable = () => {
     openModal('CONFIRMATION', {
       title: 'Cerrar Mesa',
-      message: `¿Estás seguro de que deseas cerrar la cuenta de la ${table.name} por un valor de ${formatCOP(table.total)}?`,
+      message: `¿Estás seguro de que deseas cerrar la cuenta de la ${table.name}?`,
       onConfirm: () => Alert.alert("Éxito", "Mesa cerrada correctamente.")
     });
   };
@@ -42,14 +44,14 @@ const TableCard = ({ table }: { table: Table }) => {
           <View className={`flex-row items-center mt-1 px-2 py-0.5 rounded-full ${isOccupied ? 'bg-red-100' : 'bg-teal-100'}`}>
             <View className={`w-2 h-2 rounded-full mr-1.5 ${isOccupied ? 'bg-red-500' : 'bg-teal-500'}`} />
             <Text className={`text-[10px] font-InterBold ${isOccupied ? 'text-red-800' : 'text-teal-800'}`}>
-              {table.status}
+              {table.status === 'OCCUPIED' ? 'OCUPADA' : 'LIBRE'}
             </Text>
           </View>
         </View>
         <View className="items-end">
-          <Text className="text-xs text-gray-500 font-InterMedium">Total Cuenta</Text>
-          <Text className={`text-xl font-InterBold ${isOccupied ? 'text-lora-text' : 'text-gray-400'}`}>
-            {formatCOP(table.total)}
+          <Text className="text-xs text-gray-500 font-InterMedium">Capacidad</Text>
+          <Text className={`text-xl font-InterBold ${table.capacity ? 'text-lora-text' : 'text-gray-400'}`}>
+            {table.capacity || 4}
           </Text>
         </View>
       </View>
@@ -84,10 +86,19 @@ const TableCard = ({ table }: { table: Table }) => {
 };
 
 const CashierScreen = () => {
-  const { zones, tables: adminTables } = useAdminStore();
-  const [activeZoneId, setActiveZoneId] = useState<string>(zones[0]?.id || '1');
+  const { data: zonesData, isLoading: zonesLoading } = useZones();
+  const { data: tablesData, isLoading: tablesLoading } = useTables();
+  
+  const [activeZoneId, setActiveZoneId] = useState<string>('');
   const [isExpanded, setIsExpanded] = useState(true);
   const openModal = useModalStore(state => state.openModal);
+
+  // Set initial active zone from API data
+  useMemo(() => {
+    if (zonesData && zonesData.length > 0 && !activeZoneId) {
+      setActiveZoneId(zonesData[0].id);
+    }
+  }, [zonesData]);
 
   // Animation values
   const buttonsHeight = useSharedValue(1); // 1 = expanded, 0 = collapsed
@@ -128,15 +139,16 @@ const CashierScreen = () => {
   };
 
   const filteredTables = useMemo(() => {
-    const activeZone = zones.find(z => z.id === activeZoneId);
-    if (!activeZone) return [];
-    
-    return MOCK_DB.tables.filter(t => t.zone === activeZone.dbKey);
-  }, [activeZoneId, zones]);
+    if (!tablesData || !activeZoneId) return [];
+    return tablesData.filter(t => t.zoneId === activeZoneId);
+  }, [activeZoneId, tablesData]);
 
-  const totalSales = MOCK_DB.tables.reduce((acc, t) => acc + t.total, 0);
-  const occupiedCount = MOCK_DB.tables.filter(t => t.status === 'OCUPADA').length;
-  const freeCount = MOCK_DB.tables.filter(t => t.status === 'LIBRE').length;
+  // TODO: Obtener datos reales de orders cuando estén implementados
+  const totalSales = 0;
+  const occupiedCount = filteredTables.filter(t => t.status === 'OCCUPIED').length;
+  const freeCount = filteredTables.filter(t => t.status === 'AVAILABLE').length;
+
+  const zones = zonesData || [];
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-100">
@@ -162,7 +174,7 @@ const CashierScreen = () => {
       {/* Table Grid */}
       <FlatList
         data={filteredTables}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TableCard table={item} />}
         contentContainerStyle={{ 
           paddingHorizontal: 16, 

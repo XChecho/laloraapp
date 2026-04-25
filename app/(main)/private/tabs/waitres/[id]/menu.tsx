@@ -1,10 +1,12 @@
-import { MOCK_DB, MenuItem } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
-import { useMainStore } from '@store/useMainStore';
+import { useMenuCategories } from '@src/hooks/useMenuCategories';
+import { useMenuProductsByCategory } from '@src/hooks/useMenuProducts';
+import { useMainStore } from '@src/store/useMainStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { memo, useState } from 'react';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Modal,
   Platform,
@@ -16,16 +18,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const CATEGORIES = [
-  { id: 'almuerzo', name: 'Almuerzo del Día', icon: 'restaurant', subtitle: 'Día' },
-  { id: 'carta', name: 'A la Carta', icon: 'book' },
-  { id: 'bebida', name: 'Bebidas', icon: 'wine' },
-] as const;
-
-const ALACARTE_SUBCATS = ['Entradas', 'Res', 'Cerdo', 'Pollo', 'Pez y Mariscos', 'Pastas'];
-
-const COOKING_TERMS = ['Azul (Sellado)', 'Medio', '3/4 (Al punto)', 'Bien asado'];
-
 const shadowStyle = Platform.select({
   ios: {
     shadowColor: '#000',
@@ -33,105 +25,84 @@ const shadowStyle = Platform.select({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  android: {
-    elevation: 3,
-  },
-  default: {
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  }
+  android: { elevation: 3 },
+  default: { boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }
 });
-
-const SubcatButton = memo(({ sub, activeSubcat, onPress }: { sub: string, activeSubcat: string, onPress: (sub: string) => void }) => (
-  <Pressable
-    onPress={() => onPress(sub)}
-    style={activeSubcat === sub ? shadowStyle : undefined}
-    className={`mr-3 px-6 py-3 rounded-2xl border ${activeSubcat === sub ? 'bg-lora-primary border-lora-primary' : 'bg-white border-gray-200'
-      }`}
-  >
-    <Text className={`text-sm font-InterBold ${activeSubcat === sub ? 'text-white' : 'text-gray-500'}`}>
-      {sub}
-    </Text>
-  </Pressable>
-));
 
 const MenuScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { currentOrder, addItem } = useMainStore();
+  const { data: categoriesData, isLoading: categoriesLoading } = useMenuCategories();
 
-  const [activeCategory, setActiveCategory] = useState<'almuerzo' | 'carta' | 'bebida'>('almuerzo');
-  const [activeSubcat, setActiveSubcat] = useState('Entradas');
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const { data: productsData, isLoading: productsLoading } = useMenuProductsByCategory(activeCategoryId || '');
 
-  // Modals visibility
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [showLunchModal, setShowLunchModal] = useState(false);
-  const [showTermModal, setShowTermModal] = useState(false);
-  const [showSauceModal, setShowSauceModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [modifierStep, setModifierStep] = useState(0);
+  const [modifierSelections, setModifierSelections] = useState<Record<string, string[]>>({});
+  const [showModifierModal, setShowModifierModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  // Flow selections
-  const [lunchProtein, setLunchProtein] = useState('');
-  const [lunchDrink, setLunchDrink] = useState('');
-  const [lunchNotes, setLunchNotes] = useState('');
-  const [termSelection, setTermSelection] = useState('');
-  const [sauceSelection, setSauceSelection] = useState('');
   const [extraNotes, setExtraNotes] = useState('');
 
-  const filteredItems = MOCK_DB.menu.filter((item) => {
-    if (activeCategory === 'carta') {
-      return item.category === 'carta' && item.subcategory === activeSubcat;
-    }
-    return item.category === activeCategory;
-  });
+  const categories = categoriesData || [];
 
-  const handleSelectItem = (item: MenuItem) => {
-    if (!item.isAvailable) return;
-    setSelectedItem(item);
+  React.useEffect(() => {
+    if (categoriesData && categoriesData.length > 0 && !activeCategoryId) {
+      setActiveCategoryId(categoriesData[0].id);
+    }
+  }, [categoriesData, activeCategoryId]);
+
+  const handleSelectProduct = (product: any) => {
+    if (!product.available) return;
+    setSelectedProduct(product);
     setExtraNotes('');
 
-    if (item.requiresLunchFlow) {
-      setLunchProtein('');
-      setLunchDrink('');
-      setLunchNotes('');
-      setShowLunchModal(true);
-    } else if (item.requiresTerm) {
-      setTermSelection('');
-      setShowTermModal(true);
-    } else if (item.requiresSauce) {
-      setSauceSelection('');
-      setShowSauceModal(true);
+    if (product.modifiers && product.modifiers.length > 0) {
+      setModifierStep(0);
+      setModifierSelections({});
+      setShowModifierModal(true);
     } else {
       setShowConfirmModal(true);
     }
   };
 
-  const handleConfirmOrder = (type: 'lunch' | 'term' | 'sauce' | 'simple') => {
-    if (!selectedItem) return;
-
-    const baseItem = {
-      ...selectedItem,
-      price: selectedItem.price + (selectedItem.surcharge || 0),
-    };
-
-    if (type === 'lunch') {
-      addItem({ ...baseItem, protein: lunchProtein, sideDrink: lunchDrink, notes: lunchNotes });
-      setShowLunchModal(false);
-    } else if (type === 'term') {
-      addItem({ ...baseItem, term: termSelection, notes: extraNotes });
-      setShowTermModal(false);
-    } else if (type === 'sauce') {
-      addItem({ ...baseItem, sauce: sauceSelection, notes: extraNotes });
-      setShowSauceModal(false);
-    } else {
-      addItem({ ...baseItem, notes: extraNotes });
-      setShowConfirmModal(false);
-    }
-    setSelectedItem(null);
+  const handleModifierConfirm = () => {
+    setShowModifierModal(false);
+    setShowConfirmModal(true);
   };
+
+  const handleAddToCart = () => {
+    if (!selectedProduct) return;
+
+    const modifiersText = Object.entries(modifierSelections)
+      .filter(([, opts]) => opts.length > 0)
+      .map(([name, opts]) => `${name}: ${opts.join(', ')}`)
+      .join(' | ');
+
+    addItem({
+      id: selectedProduct.id,
+      name: selectedProduct.name,
+      price: selectedProduct.price,
+      notes: [modifiersText, extraNotes].filter(Boolean).join(' - '),
+    });
+
+    setShowConfirmModal(false);
+    setSelectedProduct(null);
+    setModifierSelections({});
+    setExtraNotes('');
+  };
+
+  if (categoriesLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100 items-center justify-center">
+        <ActivityIndicator size="large" color="#0A873A" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
-      {/* Header */}
       <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
         <Pressable onPress={() => router.back()} className="p-2">
           <Ionicons name="arrow-back" size={24} color="#1B2332" />
@@ -141,65 +112,65 @@ const MenuScreen = () => {
         </Text>
       </View>
 
-      {/* Main Categories */}
-      <View className="flex-row bg-white border-b border-gray-100">
-        {CATEGORIES.map((cat) => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="bg-white border-b border-gray-100 px-4">
+        {categories.map((cat) => (
           <Pressable
             key={cat.id}
-            onPress={() => setActiveCategory(cat.id)}
-            className={`flex-1 items-center py-4 border-b-2 ${activeCategory === cat.id ? 'border-lora-primary' : 'border-transparent'
-              }`}
+            onPress={() => setActiveCategoryId(cat.id)}
+            className={`py-4 mr-6 border-b-4 ${activeCategoryId === cat.id ? 'border-lora-primary' : 'border-transparent'}`}
           >
-            <Text className={`text-[10px] font-InterBold uppercase ${activeCategory === cat.id ? 'text-lora-primary' : 'text-gray-400'}`}>
+            <Text className={`font-InterBold ${activeCategoryId === cat.id ? 'text-lora-primary' : 'text-gray-400'}`}>
               {cat.name}
             </Text>
           </Pressable>
         ))}
-      </View>
-
-      {/* Large Subcategories */}
-      {activeCategory === 'carta' && (
-        <View className="bg-white border-b border-gray-100">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3">
-            {ALACARTE_SUBCATS.map((sub) => (
-              <SubcatButton
-                key={sub}
-                sub={sub}
-                activeSubcat={activeSubcat}
-                onPress={setActiveSubcat}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      <ScrollView className="flex-1 px-3 pt-4">
-        <View className="flex-row flex-wrap">
-          {filteredItems.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => handleSelectItem(item)}
-              disabled={!item.isAvailable}
-              className="w-1/2 p-1.5"
-            >
-              <View className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                <Image source={{ uri: item.image }} className="w-full h-32" resizeMode="cover" />
-                <View className="p-3">
-                  <Text className="text-sm font-InterBold text-lora-text" numberOfLines={2}>{item.name}</Text>
-                  <Text className="text-xs font-InterBold text-lora-primary mt-1">{formatCOP(item.price)}</Text>
-                  {!item.isAvailable && <Text className="text-[10px] font-InterBold text-red-500 uppercase mt-1">Agotado</Text>}
-                </View>
-              </View>
-            </Pressable>
-          ))}
-        </View>
       </ScrollView>
 
-      {/* Footer */}
+      <ScrollView className="flex-1 px-3 pt-4">
+        {productsLoading ? (
+          <View className="items-center py-20">
+            <ActivityIndicator size="large" color="#94A3B8" />
+          </View>
+        ) : (
+          <View className="flex-row flex-wrap">
+            {(productsData || []).map((product) => (
+              <Pressable
+                key={product.id}
+                onPress={() => handleSelectProduct(product)}
+                disabled={!product.available}
+                className="w-1/2 p-1.5"
+              >
+                <View className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+                  {product.image ? (
+                    <Image source={{ uri: product.image }} className="w-full h-32" resizeMode="cover" />
+                  ) : (
+                    <View className="w-full h-32 bg-gray-100 items-center justify-center">
+                      <Ionicons name="restaurant-outline" size={32} color="#CBD5E1" />
+                    </View>
+                  )}
+                  <View className="p-3">
+                    <Text className="text-sm font-InterBold text-lora-text" numberOfLines={2}>{product.name}</Text>
+                    <Text className="text-xs font-InterBold text-lora-primary mt-1">{formatCOP(product.price)}</Text>
+                    {!product.available && <Text className="text-[10px] font-InterBold text-red-500 uppercase mt-1">Agotado</Text>}
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {(!productsData || productsData.length === 0) && !productsLoading && (
+          <View className="items-center justify-center py-20 opacity-40">
+            <Ionicons name="restaurant-outline" size={48} color="#94A3B8" />
+            <Text className="mt-4 font-InterBold text-slate-500">No hay productos en esta categoría</Text>
+          </View>
+        )}
+      </ScrollView>
+
       {currentOrder.length > 0 && (
         <View className="px-4 pt-4 pb-12 bg-white border-t border-gray-100">
           <Pressable
-            onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/verify`)}
+            onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/verify` as any)}
             style={shadowStyle}
             className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70"
           >
@@ -209,139 +180,127 @@ const MenuScreen = () => {
         </View>
       )}
 
-      {/* Lunch Flow Modal */}
-      <Modal visible={showLunchModal} transparent animationType="slide">
+      <Modal visible={showModifierModal} transparent animationType="slide">
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-[40px] p-6 max-h-[90%]">
+          <View className="bg-white rounded-t-[40px] p-6 max-h-[80%]">
             <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
-            <Text className="text-xl font-InterBold text-lora-text mb-6">Configurar Almuerzo: {selectedItem?.name}</Text>
+            {selectedProduct && selectedProduct.modifiers && selectedProduct.modifiers[modifierStep] && (
+              <>
+                <Text className="text-xl font-InterBold text-lora-text mb-2">
+                  {selectedProduct.name}
+                </Text>
+                <Text className="text-sm font-InterBold text-gray-500 mb-4 uppercase tracking-wider">
+                  {selectedProduct.modifiers[modifierStep].name}
+                  {selectedProduct.modifiers[modifierStep].required ? ' *' : ' (opcional)'}
+                </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Proteína</Text>
-              <View className="space-y-2 mb-6">
-                {MOCK_DB.proteins.map((p) => (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {selectedProduct.modifiers[modifierStep].options.map((option: string) => {
+                    const isSelected = (modifierSelections[selectedProduct.modifiers[modifierStep].name] || []).includes(option);
+                    return (
+                      <Pressable
+                        key={option}
+                        onPress={() => {
+                          const modName = selectedProduct.modifiers[modifierStep].name;
+                          const current = modifierSelections[modName] || [];
+                          const allowsMultiple = selectedProduct.modifiers[modifierStep].multiple;
+                          let updated;
+                          if (allowsMultiple) {
+                            updated = current.includes(option) ? current.filter((o: string) => o !== option) : [...current, option];
+                          } else {
+                            updated = current.includes(option) ? [] : [option];
+                          }
+                          setModifierSelections({ ...modifierSelections, [modName]: updated });
+                        }}
+                        className={`flex-row items-center justify-between p-4 rounded-xl border mb-2 ${isSelected ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
+                      >
+                        <Text className={`font-InterSemiBold ${isSelected ? 'text-lora-primary' : 'text-gray-700'}`}>{option}</Text>
+                        <View className={`w-6 h-6 rounded-full border-2 ${isSelected ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
+                          {isSelected && <Ionicons name="checkmark" size={14} color="white" />}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
+                <View className="flex-row gap-3 mt-4">
+                  {modifierStep > 0 && (
+                    <Pressable
+                      onPress={() => setModifierStep(modifierStep - 1)}
+                      className="flex-1 bg-gray-100 py-4 rounded-xl items-center"
+                    >
+                      <Text className="text-gray-500 font-InterBold">Anterior</Text>
+                    </Pressable>
+                  )}
                   <Pressable
-                    key={p}
-                    onPress={() => setLunchProtein(p)}
-                    className={`flex-row items-center justify-between p-4 rounded-xl border ${lunchProtein === p ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
+                    onPress={() => {
+                      const currentMod = selectedProduct.modifiers[modifierStep];
+                      const currentSelections = modifierSelections[currentMod.name] || [];
+                      if (currentMod.required && currentSelections.length === 0) return;
+                      if (modifierStep < selectedProduct.modifiers.length - 1) {
+                        setModifierStep(modifierStep + 1);
+                      } else {
+                        handleModifierConfirm();
+                      }
+                    }}
+                    disabled={selectedProduct.modifiers[modifierStep].required && (modifierSelections[selectedProduct.modifiers[modifierStep].name] || []).length === 0}
+                    className={`flex-1 py-4 rounded-xl items-center ${selectedProduct.modifiers[modifierStep].required && (modifierSelections[selectedProduct.modifiers[modifierStep].name] || []).length === 0 ? 'bg-gray-300' : 'bg-lora-primary'}`}
                   >
-                    <Text className={`font-InterSemiBold ${lunchProtein === p ? 'text-lora-primary' : 'text-gray-700'}`}>{p}</Text>
-                    <View className={`w-6 h-6 rounded-full border-2 ${lunchProtein === p ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
-                      {lunchProtein === p && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
-                    </View>
+                    <Text className="text-white font-InterBold">
+                      {modifierStep < selectedProduct.modifiers.length - 1 ? 'Siguiente' : 'Confirmar'}
+                    </Text>
                   </Pressable>
-                ))}
-              </View>
-
-              <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Seleccione Bebida</Text>
-              <View className="space-y-2 mb-6">
-                {MOCK_DB.lunchDrinks.map((d) => (
-                  <Pressable
-                    key={d}
-                    onPress={() => setLunchDrink(d)}
-                    className={`flex-row items-center justify-between p-4 rounded-xl border ${lunchDrink === d ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
-                  >
-                    <Text className={`font-InterSemiBold ${lunchDrink === d ? 'text-lora-primary' : 'text-gray-700'}`}>{d}</Text>
-                    <View className={`w-6 h-6 rounded-full border-2 ${lunchDrink === d ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
-                      {lunchDrink === d && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text className="text-sm font-InterBold text-gray-500 mb-3 uppercase tracking-wider">Notas Especiales</Text>
-              <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm h-24 mb-8"
-                placeholder="Ej: Sin arroz, sin papá, sin ensalada..."
-                multiline
-                value={lunchNotes}
-                onChangeText={setLunchNotes}
-              />
-
-              <Pressable
-                onPress={() => handleConfirmOrder('lunch')}
-                disabled={!lunchProtein || !lunchDrink}
-                style={shadowStyle}
-                className={`py-4 rounded-2xl items-center active:opacity-70 ${lunchProtein && lunchDrink ? 'bg-lora-primary' : 'bg-gray-300'}`}
-              >
-                <Text className="text-white font-InterBold text-base">Agregar al Pedido</Text>
-              </Pressable>
-              <Pressable onPress={() => setShowLunchModal(false)} className="py-4 items-center">
-                <Text className="text-gray-400 font-InterBold">Cancelar</Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Term Modal */}
-      <Modal visible={showTermModal} transparent animationType="slide">
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-[40px] p-6">
-            <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
-            <Text className="text-xl font-InterBold text-lora-text mb-6">Término de Carne: {selectedItem?.name}</Text>
-
-            <View className="space-y-2 mb-6">
-              {COOKING_TERMS.map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => setTermSelection(t)}
-                  className={`flex-row items-center justify-between p-4 rounded-xl border ${termSelection === t ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
-                >
-                  <Text className={`font-InterSemiBold ${termSelection === t ? 'text-lora-primary' : 'text-gray-700'}`}>{t}</Text>
-                  <View className={`w-6 h-6 rounded-full border-2 ${termSelection === t ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
-                    {termSelection === t && <Ionicons name="checkmark" size={14} color="white" className="self-center" />}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm h-20 mb-8"
-              placeholder="Notas adicionales..."
-              multiline
-              value={extraNotes}
-              onChangeText={setExtraNotes}
-            />
-
-            <Pressable
-              onPress={() => handleConfirmOrder('term')}
-              disabled={!termSelection}
-              className={`py-4 rounded-2xl items-center active:opacity-70 ${termSelection ? 'bg-lora-primary' : 'bg-gray-300'}`}
-            >
-              <Text className="text-white font-InterBold text-base">Confirmar y Agregar</Text>
-            </Pressable>
-            <Pressable onPress={() => setShowTermModal(false)} className="py-4 items-center">
+                </View>
+              </>
+            )}
+            <Pressable onPress={() => { setShowModifierModal(false); setSelectedProduct(null); }} className="py-4 items-center mt-2">
               <Text className="text-gray-400 font-InterBold">Cancelar</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
 
-      {/* Generic Confirmation Modal */}
       <Modal visible={showConfirmModal} transparent animationType="fade">
         <View className="flex-1 bg-black/60 justify-center p-6">
           <View className="bg-white rounded-[32px] p-6 shadow-2xl">
-            <Image source={{ uri: selectedItem?.image }} className="w-full h-40 rounded-2xl mb-4" />
-            <Text className="text-lg font-InterBold text-lora-text mb-2">{selectedItem?.name}</Text>
-            <Text className="text-sm font-InterBold text-lora-primary mb-6">{formatCOP(selectedItem?.price || 0)}</Text>
+            {selectedProduct && (
+              <>
+                {selectedProduct.image ? (
+                  <Image source={{ uri: selectedProduct.image }} className="w-full h-40 rounded-2xl mb-4" />
+                ) : (
+                  <View className="w-full h-40 bg-gray-100 rounded-2xl mb-4 items-center justify-center">
+                    <Ionicons name="restaurant-outline" size={48} color="#CBD5E1" />
+                  </View>
+                )}
+                <Text className="text-lg font-InterBold text-lora-text mb-2">{selectedProduct.name}</Text>
+                <Text className="text-sm font-InterBold text-lora-primary mb-4">{formatCOP(selectedProduct.price)}</Text>
 
-            <TextInput
-              className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm h-20 mb-6"
-              placeholder="Notas (opcional)..."
-              multiline
-              value={extraNotes}
-              onChangeText={setExtraNotes}
-            />
+                {Object.entries(modifierSelections).filter(([, opts]) => opts.length > 0).length > 0 && (
+                  <View className="mb-4">
+                    {Object.entries(modifierSelections).filter(([, opts]) => opts.length > 0).map(([name, opts]) => (
+                      <Text key={name} className="text-xs text-gray-500 font-InterMedium">{name}: {opts.join(', ')}</Text>
+                    ))}
+                  </View>
+                )}
 
-            <View className="flex-row space-x-3">
-              <Pressable onPress={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 py-4 rounded-xl items-center active:opacity-70">
-                <Text className="text-gray-500 font-InterBold">Cancelar</Text>
-              </Pressable>
-              <Pressable onPress={() => handleConfirmOrder('simple')} className="flex-1 bg-lora-primary py-4 rounded-xl items-center active:opacity-70">
-                <Text className="text-white font-InterBold">Agregar</Text>
-              </Pressable>
-            </View>
+                <TextInput
+                  className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm h-20 mb-6"
+                  placeholder="Notas (opcional)..."
+                  multiline
+                  value={extraNotes}
+                  onChangeText={setExtraNotes}
+                />
+
+                <View className="flex-row gap-3">
+                  <Pressable onPress={() => { setShowConfirmModal(false); setSelectedProduct(null); }} className="flex-1 bg-gray-100 py-4 rounded-xl items-center">
+                    <Text className="text-gray-500 font-InterBold">Cancelar</Text>
+                  </Pressable>
+                  <Pressable onPress={handleAddToCart} className="flex-1 bg-lora-primary py-4 rounded-xl items-center">
+                    <Text className="text-white font-InterBold">Agregar</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </Modal>

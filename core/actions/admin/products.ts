@@ -57,7 +57,13 @@ function createFormData(data: CreateProductInput | UpdateProductInput): FormData
         type: value.type || 'image/jpeg',
       } as any);
     } else if (value !== undefined && value !== null) {
-      formData.append(key, String(value));
+      if (key === 'price' || key === 'stock' || key === 'displayOrder') {
+        formData.append(key, Number(value));
+      } else if (key === 'available') {
+        formData.append(key, Boolean(value).toString());
+      } else {
+        formData.append(key, String(value));
+      }
     }
   });
 
@@ -66,7 +72,7 @@ function createFormData(data: CreateProductInput | UpdateProductInput): FormData
 
 export const adminProductsApi = {
   getByCategory: (categoryId: string) =>
-    fetchGeneral<AdminProduct[]>(`admin/categories/${categoryId}/products`, 'GET'),
+    fetchGeneral<AdminProduct[]>(`admin/products/categories/${categoryId}`, 'GET'),
 
   getById: (id: string) => fetchGeneral<AdminProduct>(`admin/products/${id}`, 'GET'),
 

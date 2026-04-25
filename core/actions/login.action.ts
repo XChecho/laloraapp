@@ -2,6 +2,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   firstName: string;
   lastName: string;
   userType: string;
@@ -37,6 +38,7 @@ export async function loginAction(email: string, password: string): Promise<Logi
     lastName: data.lastName,
     userType: data.userType,
     token: data.access_token,
+    refreshToken: data.refresh_token,
     email: email,
     phone: data.phone,
     profileImage: data.profileImage,

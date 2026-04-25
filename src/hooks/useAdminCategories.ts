@@ -1,20 +1,24 @@
 import { adminCategoriesApi, CreateCategoryInput, UpdateCategoryInput } from '@core/actions/admin/categories';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@src/store/useAuthStore';
 
 export const ADMIN_CATEGORIES_KEY = ['admin', 'categories'];
 
 export function useAdminCategories() {
+  const { isHydrated, isLoggedIn } = useAuthStore();
   return useQuery({
     queryKey: ADMIN_CATEGORIES_KEY,
     queryFn: () => adminCategoriesApi.getAll(),
+    enabled: isHydrated && isLoggedIn,
   });
 }
 
 export function useAdminCategory(id: string) {
+  const { isHydrated, isLoggedIn } = useAuthStore();
   return useQuery({
     queryKey: [...ADMIN_CATEGORIES_KEY, id],
     queryFn: () => adminCategoriesApi.getById(id),
-    enabled: !!id,
+    enabled: !!id && isHydrated && isLoggedIn,
   });
 }
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
 import { loginAction } from '@core/actions/login.action';
 import { useAlertStore } from './useAlertStore';
+import { router } from 'expo-router';
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -10,6 +11,7 @@ interface AuthState {
   lastName: string | null;
   userType: string | null;
   token: string | null;
+  refreshToken: string | null;
   email: string | null;
   phone: string | null;
   profileImage: string | null;
@@ -24,6 +26,7 @@ const STORAGE_KEYS = {
   lastName: 'lastName',
   userType: 'userType',
   token: 'token',
+  refreshToken: 'refreshToken',
   email: 'email',
   phone: 'phone',
   profileImage: 'profileImage',
@@ -37,6 +40,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   lastName: null,
   userType: null,
   token: null,
+  refreshToken: null,
   email: null,
   phone: null,
   profileImage: null,
@@ -50,6 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await SecureStorageAdapter.setItem(STORAGE_KEYS.lastName, userData.lastName);
       await SecureStorageAdapter.setItem(STORAGE_KEYS.userType, userData.userType);
       await SecureStorageAdapter.setItem(STORAGE_KEYS.token, userData.token);
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.refreshToken, userData.refreshToken);
       await SecureStorageAdapter.setItem(STORAGE_KEYS.email, userData.email);
       await SecureStorageAdapter.setItem(STORAGE_KEYS.isLoggedIn, 'true');
 
@@ -59,6 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         lastName: userData.lastName,
         userType: userData.userType,
         token: userData.token,
+        refreshToken: userData.refreshToken,
         email: userData.email,
       });
 
@@ -84,6 +90,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.lastName);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.userType);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.token);
+    await SecureStorageAdapter.removeItem(STORAGE_KEYS.refreshToken);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.email);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.phone);
     await SecureStorageAdapter.removeItem(STORAGE_KEYS.profileImage);
@@ -95,10 +102,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       lastName: null,
       userType: null,
       token: null,
+      refreshToken: null,
       email: null,
       phone: null,
       profileImage: null,
     });
+
+    router.replace('/(main)/login');
   },
   checkAuthStatus: async () => {
     const isLoggedIn = await SecureStorageAdapter.getItem(STORAGE_KEYS.isLoggedIn);
@@ -106,6 +116,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const lastName = await SecureStorageAdapter.getItem(STORAGE_KEYS.lastName);
     const userType = await SecureStorageAdapter.getItem(STORAGE_KEYS.userType);
     const token = await SecureStorageAdapter.getItem(STORAGE_KEYS.token);
+    const refreshToken = await SecureStorageAdapter.getItem(STORAGE_KEYS.refreshToken);
     const email = await SecureStorageAdapter.getItem(STORAGE_KEYS.email);
     const phone = await SecureStorageAdapter.getItem(STORAGE_KEYS.phone);
     const profileImage = await SecureStorageAdapter.getItem(STORAGE_KEYS.profileImage);
@@ -117,6 +128,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       lastName,
       userType,
       token,
+      refreshToken,
       email,
       phone,
       profileImage,
@@ -134,6 +146,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     if (data.profileImage !== undefined) {
       await SecureStorageAdapter.setItem(STORAGE_KEYS.profileImage, data.profileImage || '');
+    }
+    if (data.token !== undefined) {
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.token, data.token || '');
+    }
+    if (data.refreshToken !== undefined) {
+      await SecureStorageAdapter.setItem(STORAGE_KEYS.refreshToken, data.refreshToken || '');
     }
 
     set((state) => ({

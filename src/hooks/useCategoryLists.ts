@@ -6,14 +6,16 @@ import {
   UpdateModifierInput,
   CreateModifierOptionInput 
 } from '@core/actions/admin/category-lists';
+import { useAuthStore } from '@src/store/useAuthStore';
 
 export const CATEGORY_LISTS_KEY = ['admin', 'category', 'lists'];
 
 export function useCategoryLists(categoryId: string) {
+  const { isHydrated, isLoggedIn } = useAuthStore();
   return useQuery({
     queryKey: [...CATEGORY_LISTS_KEY, categoryId],
     queryFn: () => categoryListsApi.getByCategory(categoryId),
-    enabled: !!categoryId,
+    enabled: !!categoryId && isHydrated && isLoggedIn,
   });
 }
 

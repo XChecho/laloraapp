@@ -1,9 +1,16 @@
 import { create } from 'zustand';
-import { OrderItem } from '@core/database/mockDb';
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  notes?: string;
+  instanceId: string;
+}
 
 interface MainStore {
-  currentOrder: OrderItem[];
-  addItem: (item: Omit<OrderItem, 'instanceId'>) => void;
+  currentOrder: CartItem[];
+  addItem: (item: Omit<CartItem, 'instanceId'>) => void;
   removeItem: (instanceId: string) => void;
   clearOrder: () => void;
 }
@@ -14,7 +21,7 @@ export const useMainStore = create<MainStore>((set) => ({
     set((state) => ({
       currentOrder: [
         ...state.currentOrder,
-        { ...item, instanceId: Math.random().toString(36).substr(2, 9) } as OrderItem,
+        { ...item, instanceId: Math.random().toString(36).substr(2, 9) } as CartItem,
       ],
     })),
   removeItem: (instanceId) =>

@@ -1,24 +1,67 @@
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useMainStore } from '@src/store/useMainStore';
+import { useActiveOrderByTable, useCreateOrder, useAddOrderItems, useUpdateOrderStatus } from '@src/hooks/useOrders';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, ScrollView, Text, View, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const VerifyOrderScreen = () => {
   const { id } = useLocalSearchParams();
+  const tableId = id as string;
   const router = useRouter();
   const { currentOrder, removeItem, clearOrder } = useMainStore();
+  const { data: activeOrder, isLoading: orderLoading } = useActiveOrderByTable(tableId);
+  const createOrder = useCreateOrder();
+  const addOrderItems = useAddOrderItems();
+  const updateOrderStatus = useUpdateOrderStatus();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const total = currentOrder.reduce((sum, item) => sum + item.price, 0);
 
-  const handleSendOrder = () => {
-    // Aquí iría la lógica para enviar a cocina/base de datos
-    alert('Pedido enviado con éxito');
-    clearOrder();
-    router.replace('/(main)/private/tabs/waitres');
+  const handleSendOrder = async () => {
+    if (currentOrder.length === 0) return;
+    setIsSubmitting(true);
+
+    try {
+      let orderId = activeOrder?.id;
+
+      if (!orderId) {
+        const newOrder = await createOrder.mutateAsync({ tableId });
+        orderId = newOrder.id;
+      }
+
+      const itemsToSend = currentOrder.map((item) => ({
+        productId: item.id,
+        quantity: 1,
+        price: item.price,
+        notes: item.notes || undefined,
+        modifiers: [],
+      }));
+
+      await addOrderItems.mutateAsync({ orderId, data: { items: itemsToSend } });
+      await updateOrderStatus.mutateAsync({ orderId, data: { status: 'CONFIRMED' } });
+
+      clearOrder();
+      Alert.alert('Éxito', 'Pedido enviado a cocina correctamente', [
+        { text: 'OK', onPress: () => router.replace(`/(main)/private/tabs/waitres/${tableId}/index` as any) },
+      ]);
+    } catch (error: any) {
+      console.error('Error sending order:', error);
+      Alert.alert('Error', error?.message || 'No se pudo enviar el pedido');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (orderLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100 items-center justify-center">
+        <ActivityIndicator size="large" color="#0A873A" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
@@ -36,11 +79,7 @@ const VerifyOrderScreen = () => {
           <View key={item.instanceId} className="bg-white p-4 rounded-2xl mb-3 flex-row justify-between items-center shadow-sm border border-gray-100">
             <View className="flex-1">
               <Text className="font-InterBold text-lora-text text-base">{item.name}</Text>
-              {item.protein && <Text className="text-xs text-gray-500 font-InterMedium">Proteína: {item.protein}</Text>}
-              {item.term && <Text className="text-xs text-gray-500 font-InterMedium">Término: {item.term}</Text>}
-              {item.sauce && <Text className="text-xs text-gray-500 font-InterMedium">Salsa: {item.sauce}</Text>}
-              {item.sideDrink && <Text className="text-xs text-gray-500 font-InterMedium">Bebida: {item.sideDrink}</Text>}
-              {item.notes && <Text className="text-xs text-lora-primary font-InterItalic mt-1 italic">"{item.notes}"</Text>}
+              {item.notes && <Text className="text-xs text-lora-primary font-InterItalic mt-1 italic">{item.notes}</Text>}
             </View>
             <View className="items-center">
               <Text className="font-InterBold text-lora-primary mb-2">{formatCOP(item.price)}</Text>
@@ -67,9 +106,14 @@ const VerifyOrderScreen = () => {
           </View>
           <Pressable
             onPress={handleSendOrder}
-            className="bg-lora-primary py-4 rounded-2xl items-center shadow-lg active:opacity-70"
+            disabled={isSubmitting}
+            className={`py-4 rounded-2xl items-center shadow-lg active:opacity-70 ${isSubmitting ? 'bg-lora-primary/50' : 'bg-lora-primary'}`}
           >
-            <Text className="text-white font-InterBold text-lg">Confirmar y Enviar a Cocina</Text>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text className="text-white font-InterBold text-lg">Confirmar y Enviar a Cocina</Text>
+            )}
           </Pressable>
         </View>
       )}

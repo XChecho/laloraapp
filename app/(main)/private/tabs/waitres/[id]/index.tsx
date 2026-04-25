@@ -1,30 +1,61 @@
-import { MOCK_DB } from '@core/database/mockDb';
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
-import { useModalStore } from '@store/useModalStore';
+import { useActiveOrderByTable } from '@src/hooks/useOrders';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Platform,
   Pressable,
   ScrollView,
   Text,
   View,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const getTimeElapsed = (dateString: string) => {
   const start = new Date(dateString).getTime();
   const now = new Date().getTime();
-  const diff = Math.floor((now - start) / 1000 / 60); // minutes
-  return `${diff} min`;
+  const diff = Math.floor((now - start) / 1000 / 60);
+  if (diff < 1) return 'Ahora';
+  if (diff < 60) return `${diff} min`;
+  const hours = Math.floor(diff / 60);
+  const mins = diff % 60;
+  return `${hours}h ${mins}m`;
+};
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    PENDING: 'Pendiente',
+    CONFIRMED: 'Confirmado',
+    IN_PREPARATION: 'En preparación',
+    READY: 'Listo',
+    DELIVERED: 'Entregado',
+    CANCELLED: 'Cancelado',
+    CLOSED: 'Cerrado',
+  };
+  return labels[status] || status;
+};
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    PENDING: '#F59E0B',
+    CONFIRMED: '#3B82F6',
+    IN_PREPARATION: '#F97316',
+    READY: '#22C55E',
+    DELIVERED: '#06B6D4',
+    CANCELLED: '#EF4444',
+    CLOSED: '#6B7280',
+  };
+  return colors[status] || '#6B7280';
 };
 
 const TableDetailsScreen = () => {
   const { id, from } = useLocalSearchParams();
+  const tableId = id as string;
   const router = useRouter();
-  const openModal = useModalStore(state => state.openModal);
-  const [now, setNow] = useState(new Date());
+  const { data: activeOrder, isLoading } = useActiveOrderByTable(tableId);
 
   const handleBack = () => {
     if (from === 'cashier') {
@@ -34,35 +65,34 @@ const TableDetailsScreen = () => {
     }
   };
 
-  // Update timers every minute
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+  const handleAddProducts = () => {
+    router.push(`/(main)/private/tabs/waitres/${tableId}/menu` as any);
+  };
 
-  const table = MOCK_DB.tables.find(t => t.id === Number(id));
+  const handleCloseTable = () => {
+    Alert.alert('Próximamente', 'El cierre de mesas estará disponible pronto');
+  };
 
-  if (!table) {
+  if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center">
-        <Text className="font-InterBold text-lg">Mesa no encontrada</Text>
-        <Pressable onPress={handleBack} className="mt-4">
-          <Text className="text-lora-primary font-InterBold">Regresar</Text>
-        </Pressable>
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#0A873A" />
       </SafeAreaView>
     );
   }
 
-  const handleCloseTable = () => {
-    openModal('CONFIRMATION', {
-      title: 'Cerrar Mesa',
-      message: `¿Estás seguro de que deseas cerrar la ${table.name}? Total: ${formatCOP(table.total)}`,
-      onConfirm: () => {
-        console.log("Cerrando mesa...");
-        router.replace('/(main)/private/tabs/waitres' as any);
-      }
-    });
-  };
+  if (!activeOrder) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <Ionicons name="receipt-outline" size={64} color="#CBD5E1" />
+        <Text className="mt-4 font-InterBold text-gray-400 text-lg">No hay orden activa</Text>
+        <Text className="mt-2 font-InterMedium text-gray-400 text-sm">Esta mesa no tiene una orden abierta</Text>
+        <Pressable onPress={handleBack} className="mt-6 bg-lora-primary px-8 py-3 rounded-xl">
+          <Text className="text-white font-InterBold">Regresar</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -72,10 +102,20 @@ const TableDetailsScreen = () => {
           <Ionicons name="arrow-back" size={24} color="#1B2332" />
         </Pressable>
         <View className="flex-1 ml-2">
-          <Text className="text-xl font-InterBold text-lora-text">{table.name}</Text>
-          <Text className="text-xs font-InterMedium text-lora-primary uppercase">
-            {table.status} • Abierta hace {table.openedAt ? getTimeElapsed(table.openedAt) : '0 min'}
+          <Text className="text-xl font-InterBold text-lora-text">
+            {activeOrder.table?.name || `Mesa ${id}`}
           </Text>
+          <View className="flex-row items-center mt-1">
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: getStatusColor(activeOrder.status), marginRight: 4 }} />
+            <Text className="text-xs font-InterMedium text-lora-primary uppercase">
+              {getStatusLabel(activeOrder.status)} • Abierta hace {getTimeElapsed(activeOrder.createdAt)}
+            </Text>
+          </View>
+          {activeOrder.customerName && (
+            <Text className="text-xs font-InterMedium text-gray-500 mt-0.5">
+              Cliente: {activeOrder.customerName}
+            </Text>
+          )}
         </View>
         <Pressable
           onPress={handleCloseTable}
@@ -90,48 +130,49 @@ const TableDetailsScreen = () => {
           <View>
             <Text className="text-sm font-InterBold text-gray-400 uppercase tracking-widest">Resumen de Pedido</Text>
             <Text className="text-xs font-InterMedium text-gray-400 mt-1">
-              {table.currentOrder.length} productos solicitados
+              {activeOrder.items.length} producto{activeOrder.items.length !== 1 ? 's' : ''} solicitado{activeOrder.items.length !== 1 ? 's' : ''}
             </Text>
           </View>
           <View className="items-end">
-            <Text className="text-2xl font-InterBold text-lora-text">{formatCOP(table.total)}</Text>
+            <Text className="text-2xl font-InterBold text-lora-text">{formatCOP(activeOrder.total)}</Text>
           </View>
         </View>
 
-        {table.currentOrder.length > 0 ? (
-          <View className="space-y-4 mb-10">
-            {table.currentOrder.map((item, index) => (
-              <View key={index} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex-row items-center">
-                <View className="flex-1">
-                  <View className="flex-row items-center justify-between mb-1">
-                    <Text className="font-InterBold text-lora-text text-base">{item.name}</Text>
-                    <Text className="font-InterBold text-lora-primary">{formatCOP(item.price)}</Text>
-                  </View>
-
-                  {(item.protein || item.term || item.notes) && (
-                    <Text className="text-xs text-gray-500 font-InterMedium mb-2">
-                      {[item.protein, item.term, item.notes].filter(Boolean).join(' • ')}
-                    </Text>
-                  )}
-
-                  <View className="flex-row items-center">
-                    <Ionicons name="time-outline" size={14} color="#94A3B8" />
-                    <Text className="text-[11px] text-gray-400 font-InterBold ml-1 uppercase">
-                      Hace {item.requestedAt ? getTimeElapsed(item.requestedAt) : '0 min'}
-                    </Text>
-                    <View className="mx-2 w-1 h-1 rounded-full bg-gray-300" />
-                    <View className="bg-orange-100 px-2 py-0.5 rounded-full">
-                      <Text className="text-[9px] font-InterBold text-orange-600 uppercase">En preparación</Text>
-                    </View>
-                  </View>
+        {activeOrder.items.length > 0 ? (
+          <View className="mb-10">
+            {activeOrder.items.map((item) => (
+              <View key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-3">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="font-InterBold text-lora-text text-base">{item.product?.name || 'Producto'}</Text>
+                  <Text className="font-InterBold text-lora-primary">{formatCOP(item.price)}</Text>
                 </View>
+
+                {item.quantity > 1 && (
+                  <Text className="text-xs text-gray-500 font-InterMedium mb-1">Cantidad: {item.quantity}</Text>
+                )}
+
+                {item.modifiers && item.modifiers.length > 0 && (
+                  <View className="mb-2">
+                    {item.modifiers.map((mod, idx) => (
+                      <Text key={idx} className="text-xs text-gray-500 font-InterMedium">
+                        {mod.modifierName}: {mod.selectedOption}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {item.notes && (
+                  <Text className="text-xs text-lora-primary font-InterItalic italic">
+                    <Text style={{ fontFamily: 'Inter-Italic' }}>&ldquo;{item.notes}&rdquo;</Text>
+                  </Text>
+                )}
               </View>
             ))}
           </View>
         ) : (
           <View className="py-20 items-center justify-center">
             <Ionicons name="receipt-outline" size={64} color="#E2E8F0" />
-            <Text className="text-gray-400 font-InterBold mt-4">No hay productos en esta mesa</Text>
+            <Text className="text-gray-400 font-InterBold mt-4">No hay productos en esta orden</Text>
           </View>
         )}
       </ScrollView>
@@ -139,7 +180,7 @@ const TableDetailsScreen = () => {
       {/* Actions */}
       <View className={`px-6 pt-6 bg-white border-t border-gray-100 ${Platform.OS === 'ios' ? 'pb-16' : ''}`}>
         <Pressable
-          onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/menu` as any)}
+          onPress={handleAddProducts}
           className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70 shadow-sm"
         >
           <Ionicons name="add-circle" size={24} color="white" />
