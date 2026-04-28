@@ -82,5 +82,5 @@ export const ordersApi = {
     fetchGeneral<Order>(`orders/${orderId}`, 'DELETE'),
 
   getActiveByTable: (tableId: string) =>
-    fetchGeneral<Order | null>(`tables/${tableId}/orders/active`, 'GET'),
+    fetchGeneral<Order | null>(`orders/tables/${tableId}/orders/active`, 'GET'),
 };

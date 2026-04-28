@@ -12,3 +12,12 @@ export function useMenuProductsByCategory(categoryId: string) {
     enabled: !!categoryId && isHydrated && isLoggedIn,
   });
 }
+
+export function useMenuAllProducts() {
+  const { isHydrated, isLoggedIn } = useAuthStore();
+  return useQuery({
+    queryKey: [...MENU_PRODUCTS_KEY, 'all'],
+    queryFn: () => menuProductsApi.getAllWithProducts(),
+    enabled: isHydrated && isLoggedIn,
+  });
+}

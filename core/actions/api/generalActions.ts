@@ -2,11 +2,49 @@ import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
 import { useAuthStore } from '@src/store/useAuthStore';
 import { refreshTokenAction } from '../auth/refreshToken.action';
 
+let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startTokenRefreshMonitor() {
+  if (refreshInterval) return;
+
+  refreshInterval = setInterval(async () => {
+    const token = await SecureStorageAdapter.getItem('token');
+    const storedRefreshToken = await SecureStorageAdapter.getItem('refreshToken');
+
+    if (!token || !storedRefreshToken) {
+      stopTokenRefreshMonitor();
+      return;
+    }
+
+    try {
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      const expiresIn = (decoded.exp * 1000) - Date.now();
+
+      if (expiresIn < 5 * 60 * 1000) {
+        const newToken = await refreshToken(storedRefreshToken);
+        if (!newToken) {
+          stopTokenRefreshMonitor();
+        }
+      }
+    } catch (error) {
+      console.error('Token refresh monitor error:', error);
+    }
+  }, 2 * 60 * 1000);
+}
+
+export function stopTokenRefreshMonitor() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+}
+
 export type HTTPMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 export interface ApiError {
   statusCode: number;
   message: string;
+  errors?: string[];
 }
 
 interface ApiResponse<T> {
@@ -20,6 +58,25 @@ function unwrapResponse<T>(response: any): T {
     return response.data as T;
   }
   return response as T;
+}
+
+function parseErrorMessage(statusCode: number, body: any): string {
+  if (!body) return `Error ${statusCode}`;
+
+  let message = body.message || 'An error occurred';
+
+  if (Array.isArray(message)) {
+    message = message.join(', ');
+  }
+
+  if (body.errors && Array.isArray(body.errors) && body.errors.length > 0) {
+    const details = body.errors.join(', ');
+    if (!message.includes(details)) {
+      message = `${message} - ${details}`;
+    }
+  }
+
+  return message || `Error ${statusCode}`;
 }
 
 async function refreshToken(refreshToken: string | null): Promise<string | null> {
@@ -75,8 +132,6 @@ export async function fetchGeneral<T>(
     body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
   });
 
-  console.log(response);
-
   if (response.status === 401) {
     const newToken = await refreshToken(storedRefreshToken);
     if (newToken) {
@@ -88,11 +143,11 @@ export async function fetchGeneral<T>(
       });
 
       if (!retryResponse.ok) {
-        const error: ApiError = await retryResponse.json().catch(() => ({
-          statusCode: retryResponse.status,
-          message: 'An error occurred',
-        }));
-        throw new Error(error.message || `Error ${retryResponse.status}`);
+        const errorBody = await retryResponse.json().catch(() => null);
+        const message = errorBody
+          ? parseErrorMessage(retryResponse.status, errorBody)
+          : `Error ${retryResponse.status}`;
+        throw new Error(message);
       }
 
       const rawResponse = await retryResponse.json();
@@ -102,11 +157,11 @@ export async function fetchGeneral<T>(
   }
 
   if (!response.ok) {
-    const error: ApiError = await response.json().catch(() => ({
-      statusCode: response.status,
-      message: 'An error occurred',
-    }));
-    throw new Error(error.message || `Error ${response.status}`);
+    const errorBody = await response.json().catch(() => null);
+    const message = errorBody
+      ? parseErrorMessage(response.status, errorBody)
+      : `Error ${response.status}`;
+    throw new Error(message);
   }
 
   const rawResponse = await response.json();

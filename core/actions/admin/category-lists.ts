@@ -5,6 +5,7 @@ export interface CategoryModifier {
   name: string;
   required: boolean;
   multiple: boolean;
+  affectsKitchen: boolean;
   options: ModifierOption[];
 }
 
@@ -27,12 +28,14 @@ export interface CreateModifierInput {
   name: string;
   required: boolean;
   multiple: boolean;
+  affectsKitchen: boolean;
 }
 
 export interface UpdateModifierInput {
   name?: string;
   required?: boolean;
   multiple?: boolean;
+  affectsKitchen?: boolean;
 }
 
 export interface CreateModifierOptionInput {

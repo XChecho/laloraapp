@@ -37,7 +37,12 @@ const VerifyOrderScreen = () => {
         quantity: 1,
         price: item.price,
         notes: item.notes || undefined,
-        modifiers: [],
+        modifiers: item.modifiers?.map((mod: any) => ({
+          modifierName: mod.modifierName,
+          selectedOption: mod.selectedOption,
+          priceExtra: mod.priceExtra || 0,
+          affectsKitchen: mod.affectsKitchen || false,
+        })) || [],
       }));
 
       await addOrderItems.mutateAsync({ orderId, data: { items: itemsToSend } });
@@ -45,7 +50,10 @@ const VerifyOrderScreen = () => {
 
       clearOrder();
       Alert.alert('Éxito', 'Pedido enviado a cocina correctamente', [
-        { text: 'OK', onPress: () => router.replace(`/(main)/private/tabs/waitres/${tableId}/index` as any) },
+        { text: 'OK', onPress: () => router.replace({
+          pathname: '/(main)/private/tabs/waitres/[id]',
+          params: { id: tableId },
+        } as any) },
       ]);
     } catch (error: any) {
       console.error('Error sending order:', error);

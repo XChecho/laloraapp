@@ -1,3 +1,5 @@
+import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
 
 export interface RefreshTokenResponse {
@@ -28,4 +30,17 @@ export async function refreshTokenAction(refreshToken: string): Promise<RefreshT
     access_token: json.data.access_token,
     refresh_token: json.data.refresh_token,
   };
+}
+
+export async function checkTokenStatusAction(): Promise<{ expiresIn: number; needsRefresh: boolean }> {
+  const token = await SecureStorageAdapter.getItem('token');
+  if (!token) return { expiresIn: 0, needsRefresh: true };
+
+  try {
+    const decoded = JSON.parse(atob(token.split('.')[1]));
+    const expiresIn = (decoded.exp * 1000) - Date.now();
+    return { expiresIn, needsRefresh: expiresIn < 5 * 60 * 1000 };
+  } catch {
+    return { expiresIn: 0, needsRefresh: true };
+  }
 }

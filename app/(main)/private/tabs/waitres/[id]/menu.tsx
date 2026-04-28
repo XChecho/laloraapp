@@ -1,12 +1,15 @@
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useMenuCategories } from '@src/hooks/useMenuCategories';
-import { useMenuProductsByCategory } from '@src/hooks/useMenuProducts';
+import { useMenuAllProducts } from '@src/hooks/useMenuProducts';
+import { useActiveOrderByTable } from '@src/hooks/useOrders';
+import { useTable } from '@src/hooks/useZones';
 import { useMainStore } from '@src/store/useMainStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   Modal,
   Platform,
@@ -29,16 +32,47 @@ const shadowStyle = Platform.select({
   default: { boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }
 });
 
+function getAllModifiers(product: any) {
+  const fromProduct = (product.modifiers || []).map((m: any) => ({
+    name: m.name,
+    options: (m.options || []).map((opt: any) => ({
+      name: typeof opt === 'string' ? opt : opt.name,
+      priceExtra: typeof opt === 'string' ? 0 : opt.priceExtra || 0,
+    })),
+    required: m.required || false,
+    multiple: m.multiple || false,
+    affectsKitchen: m.affectsKitchen || false,
+  }));
+
+  const fromCategory = (product.category?.modifierLists || []).map((list: any) => ({
+    name: list.name,
+    options: (list.options || []).map((opt: any) => ({
+      name: opt.name,
+      priceExtra: opt.priceExtra || 0,
+    })),
+    required: list.required || false,
+    multiple: list.multiple || false,
+    affectsKitchen: list.affectsKitchen || false,
+  }));
+
+  return [...fromProduct, ...fromCategory];
+}
+
 const MenuScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { currentOrder, addItem } = useMainStore();
   const { data: categoriesData, isLoading: categoriesLoading } = useMenuCategories();
+  const { data: allProductsData, isLoading: allProductsLoading } = useMenuAllProducts();
+  const { data: activeOrder, isLoading: orderLoading } = useActiveOrderByTable(id as string);
+  const { data: tableData } = useTable(id as string);
 
+  const categoryPositions = useRef<Record<string, number>>({});
+  const scrollViewRef = useRef<ScrollView>(null);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-  const { data: productsData, isLoading: productsLoading } = useMenuProductsByCategory(activeCategoryId || '');
 
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [modifiers, setModifiers] = useState<any[]>([]);
   const [modifierStep, setModifierStep] = useState(0);
   const [modifierSelections, setModifierSelections] = useState<Record<string, string[]>>({});
   const [showModifierModal, setShowModifierModal] = useState(false);
@@ -46,6 +80,26 @@ const MenuScreen = () => {
   const [extraNotes, setExtraNotes] = useState('');
 
   const categories = categoriesData || [];
+  const categoriesWithProducts = allProductsData || [];
+
+  const calculateTotalPrice = () => {
+    if (!selectedProduct) return 0;
+    let total = selectedProduct.price;
+
+    Object.entries(modifierSelections).forEach(([modName, selectedOptions]) => {
+      const modifier = modifiers.find(m => m.name === modName);
+      if (modifier) {
+        selectedOptions.forEach((optionName) => {
+          const option = modifier.options.find((o: any) => o.name === optionName);
+          if (option && option.priceExtra) {
+            total += option.priceExtra;
+          }
+        });
+      }
+    });
+
+    return total;
+  };
 
   React.useEffect(() => {
     if (categoriesData && categoriesData.length > 0 && !activeCategoryId) {
@@ -53,12 +107,43 @@ const MenuScreen = () => {
     }
   }, [categoriesData, activeCategoryId]);
 
+  const handleScroll = (event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const headerOffset = 120;
+
+    const positions = Object.entries(categoryPositions.current);
+    let currentCategory = categories[0]?.id;
+
+    for (const [catId, position] of positions) {
+      if (scrollY + headerOffset >= position) {
+        currentCategory = catId;
+      }
+    }
+
+    if (currentCategory !== activeCategoryId) {
+      setActiveCategoryId(currentCategory);
+    }
+  };
+
+  const scrollToCategory = (catId: string) => {
+    const position = categoryPositions.current[catId];
+    if (position !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        y: position - 120,
+        animated: true,
+      });
+    }
+  };
+
   const handleSelectProduct = (product: any) => {
     if (!product.available) return;
     setSelectedProduct(product);
     setExtraNotes('');
 
-    if (product.modifiers && product.modifiers.length > 0) {
+    const allModifiers = getAllModifiers(product);
+    setModifiers(allModifiers);
+
+    if (allModifiers.length > 0) {
       setModifierStep(0);
       setModifierSelections({});
       setShowModifierModal(true);
@@ -75,25 +160,42 @@ const MenuScreen = () => {
   const handleAddToCart = () => {
     if (!selectedProduct) return;
 
-    const modifiersText = Object.entries(modifierSelections)
+    const modifiersData = Object.entries(modifierSelections)
       .filter(([, opts]) => opts.length > 0)
-      .map(([name, opts]) => `${name}: ${opts.join(', ')}`)
+      .map(([modName, selectedOptions]) => {
+        const modifier = modifiers.find(m => m.name === modName);
+        return selectedOptions.map((optionName) => {
+          const option = modifier?.options.find((o: any) => o.name === optionName);
+          return {
+            modifierName: modName,
+            selectedOption: optionName,
+            priceExtra: option?.priceExtra || 0,
+            affectsKitchen: modifier?.affectsKitchen || false,
+          };
+        });
+      })
+      .flat();
+
+    const modifiersText = modifiersData
+      .map((m) => `${m.modifierName}: ${m.selectedOption}`)
       .join(' | ');
 
     addItem({
       id: selectedProduct.id,
       name: selectedProduct.name,
-      price: selectedProduct.price,
+      price: calculateTotalPrice(),
       notes: [modifiersText, extraNotes].filter(Boolean).join(' - '),
+      modifiers: modifiersData,
     });
 
     setShowConfirmModal(false);
     setSelectedProduct(null);
+    setModifiers([]);
     setModifierSelections({});
     setExtraNotes('');
   };
 
-  if (categoriesLoading) {
+  if (categoriesLoading || allProductsLoading) {
     return (
       <SafeAreaView className="flex-1 bg-gray-100 items-center justify-center">
         <ActivityIndicator size="large" color="#0A873A" />
@@ -101,76 +203,105 @@ const MenuScreen = () => {
     );
   }
 
+  const tableName = activeOrder?.table?.name || tableData?.name || `Mesa ${id}`;
+  const customerText = activeOrder?.customerName ? ` - ${activeOrder.customerName}` : '';
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
-      <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
+      <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-100">
         <Pressable onPress={() => router.back()} className="p-2">
           <Ionicons name="arrow-back" size={24} color="#1B2332" />
         </Pressable>
-        <Text className="flex-1 text-center text-lg font-InterBold text-lora-text mr-10">
-          Mesa {id}
+        <Text className="flex-1 text-center text-lg font-InterBold text-lora-text mr-10" numberOfLines={1}>
+          {orderLoading ? 'Cargando...' : tableName}{customerText}
         </Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="bg-white border-b border-gray-100 px-4">
-        {categories.map((cat) => (
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={categories}
+        keyExtractor={(cat) => cat.id}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        style={{ maxHeight: 48 }}
+        className="bg-white border-b border-gray-100"
+        renderItem={({ item: cat }) => (
           <Pressable
-            key={cat.id}
-            onPress={() => setActiveCategoryId(cat.id)}
-            className={`py-4 mr-6 border-b-4 ${activeCategoryId === cat.id ? 'border-lora-primary' : 'border-transparent'}`}
+            onPress={() => scrollToCategory(cat.id)}
+            className={`py-1 mr-6 border-b-4 ${activeCategoryId === cat.id ? 'border-lora-primary' : 'border-transparent'}`}
           >
             <Text className={`font-InterBold ${activeCategoryId === cat.id ? 'text-lora-primary' : 'text-gray-400'}`}>
               {cat.name}
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
-
-      <ScrollView className="flex-1 px-3 pt-4">
-        {productsLoading ? (
-          <View className="items-center py-20">
-            <ActivityIndicator size="large" color="#94A3B8" />
-          </View>
-        ) : (
-          <View className="flex-row flex-wrap">
-            {(productsData || []).map((product) => (
-              <Pressable
-                key={product.id}
-                onPress={() => handleSelectProduct(product)}
-                disabled={!product.available}
-                className="w-1/2 p-1.5"
-              >
-                <View className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                  {product.image ? (
-                    <Image source={{ uri: product.image }} className="w-full h-32" resizeMode="cover" />
-                  ) : (
-                    <View className="w-full h-32 bg-gray-100 items-center justify-center">
-                      <Ionicons name="restaurant-outline" size={32} color="#CBD5E1" />
-                    </View>
-                  )}
-                  <View className="p-3">
-                    <Text className="text-sm font-InterBold text-lora-text" numberOfLines={2}>{product.name}</Text>
-                    <Text className="text-xs font-InterBold text-lora-primary mt-1">{formatCOP(product.price)}</Text>
-                    {!product.available && <Text className="text-[10px] font-InterBold text-red-500 uppercase mt-1">Agotado</Text>}
-                  </View>
-                </View>
-              </Pressable>
-            ))}
-          </View>
         )}
+      />
 
-        {(!productsData || productsData.length === 0) && !productsLoading && (
+      <ScrollView
+        ref={scrollViewRef}
+        className="flex-1"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {categoriesWithProducts.length === 0 ? (
           <View className="items-center justify-center py-20 opacity-40">
             <Ionicons name="restaurant-outline" size={48} color="#94A3B8" />
-            <Text className="mt-4 font-InterBold text-slate-500">No hay productos en esta categoría</Text>
+            <Text className="mt-4 font-InterBold text-slate-500">No hay productos disponibles</Text>
           </View>
+        ) : (
+          categoriesWithProducts.map((category: any) => (
+            <View
+              key={category.id}
+              onLayout={(e) => {
+                categoryPositions.current[category.id] = e.nativeEvent.layout.y;
+              }}
+              className="px-3 pt-4 pb-2"
+            >
+              <Text className="text-base font-InterBold text-lora-text mb-3">{category.name}</Text>
+              {category.products && category.products.length > 0 ? (
+                <View className="flex-row flex-wrap">
+                  {category.products.map((product: any) => (
+                    <Pressable
+                      key={product.id}
+                      onPress={() => handleSelectProduct(product)}
+                      disabled={!product.available}
+                      className="w-1/2 p-1.5"
+                    >
+                      <View className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+                        {product.image ? (
+                          <Image source={{ uri: product.image }} className="w-full h-32" resizeMode="cover" />
+                        ) : (
+                          <View className="w-full h-32 bg-gray-100 items-center justify-center">
+                            <Ionicons name="restaurant-outline" size={32} color="#CBD5E1" />
+                          </View>
+                        )}
+                        <View className="p-3">
+                          <Text className="text-sm font-InterBold text-lora-text" numberOfLines={2}>{product.name}</Text>
+                          <Text className="text-xs font-InterBold text-lora-primary mt-1">{formatCOP(product.price)}</Text>
+                          {!product.available && <Text className="text-[10px] font-InterBold text-red-500 uppercase mt-1">Agotado</Text>}
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <View className="items-center py-8 opacity-40">
+                  <Text className="font-InterMedium text-slate-500">Sin productos</Text>
+                </View>
+              )}
+            </View>
+          ))
         )}
+        <View className="h-4" />
       </ScrollView>
 
       {currentOrder.length > 0 && (
         <View className="px-4 pt-4 pb-12 bg-white border-t border-gray-100">
           <Pressable
-            onPress={() => router.push(`/(main)/private/tabs/waitres/${id}/verify` as any)}
+            onPress={() => router.push({
+              pathname: '/(main)/private/tabs/waitres/[id]/verify',
+              params: { id: id as string },
+            } as any)}
             style={shadowStyle}
             className="bg-lora-primary py-4 rounded-2xl flex-row items-center justify-center active:opacity-70"
           >
@@ -184,37 +315,44 @@ const MenuScreen = () => {
         <View className="flex-1 bg-black/60 justify-end">
           <View className="bg-white rounded-t-[40px] p-6 max-h-[80%]">
             <View className="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-6" />
-            {selectedProduct && selectedProduct.modifiers && selectedProduct.modifiers[modifierStep] && (
+            {selectedProduct && modifiers.length > 0 && modifiers[modifierStep] && (
               <>
                 <Text className="text-xl font-InterBold text-lora-text mb-2">
                   {selectedProduct.name}
                 </Text>
                 <Text className="text-sm font-InterBold text-gray-500 mb-4 uppercase tracking-wider">
-                  {selectedProduct.modifiers[modifierStep].name}
-                  {selectedProduct.modifiers[modifierStep].required ? ' *' : ' (opcional)'}
+                  {modifiers[modifierStep].name}
+                  {modifiers[modifierStep].required ? ' *' : ' (opcional)'}
                 </Text>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
-                  {selectedProduct.modifiers[modifierStep].options.map((option: string) => {
-                    const isSelected = (modifierSelections[selectedProduct.modifiers[modifierStep].name] || []).includes(option);
+                  {modifiers[modifierStep].options.map((option: any) => {
+                    const optionName = option.name || option;
+                    const optionPrice = option.priceExtra || 0;
+                    const modName = modifiers[modifierStep].name;
+                    const isSelected = (modifierSelections[modName] || []).includes(optionName);
                     return (
                       <Pressable
-                        key={option}
+                        key={optionName}
                         onPress={() => {
-                          const modName = selectedProduct.modifiers[modifierStep].name;
                           const current = modifierSelections[modName] || [];
-                          const allowsMultiple = selectedProduct.modifiers[modifierStep].multiple;
+                          const allowsMultiple = modifiers[modifierStep].multiple;
                           let updated;
                           if (allowsMultiple) {
-                            updated = current.includes(option) ? current.filter((o: string) => o !== option) : [...current, option];
+                            updated = current.includes(optionName) ? current.filter((o: string) => o !== optionName) : [...current, optionName];
                           } else {
-                            updated = current.includes(option) ? [] : [option];
+                            updated = current.includes(optionName) ? [] : [optionName];
                           }
                           setModifierSelections({ ...modifierSelections, [modName]: updated });
                         }}
                         className={`flex-row items-center justify-between p-4 rounded-xl border mb-2 ${isSelected ? 'bg-lora-primary/5 border-lora-primary' : 'bg-gray-50 border-gray-100'}`}
                       >
-                        <Text className={`font-InterSemiBold ${isSelected ? 'text-lora-primary' : 'text-gray-700'}`}>{option}</Text>
+                        <Text className={`font-InterSemiBold flex-1 ${isSelected ? 'text-lora-primary' : 'text-gray-700'}`}>{optionName}</Text>
+                        {optionPrice > 0 && (
+                          <Text className={`font-InterBold text-sm mr-2 ${isSelected ? 'text-lora-primary' : 'text-gray-500'}`}>
+                            + {formatCOP(optionPrice)}
+                          </Text>
+                        )}
                         <View className={`w-6 h-6 rounded-full border-2 ${isSelected ? 'border-lora-primary bg-lora-primary' : 'border-gray-300'}`}>
                           {isSelected && <Ionicons name="checkmark" size={14} color="white" />}
                         </View>
@@ -234,26 +372,26 @@ const MenuScreen = () => {
                   )}
                   <Pressable
                     onPress={() => {
-                      const currentMod = selectedProduct.modifiers[modifierStep];
+                      const currentMod = modifiers[modifierStep];
                       const currentSelections = modifierSelections[currentMod.name] || [];
                       if (currentMod.required && currentSelections.length === 0) return;
-                      if (modifierStep < selectedProduct.modifiers.length - 1) {
+                      if (modifierStep < modifiers.length - 1) {
                         setModifierStep(modifierStep + 1);
                       } else {
                         handleModifierConfirm();
                       }
                     }}
-                    disabled={selectedProduct.modifiers[modifierStep].required && (modifierSelections[selectedProduct.modifiers[modifierStep].name] || []).length === 0}
-                    className={`flex-1 py-4 rounded-xl items-center ${selectedProduct.modifiers[modifierStep].required && (modifierSelections[selectedProduct.modifiers[modifierStep].name] || []).length === 0 ? 'bg-gray-300' : 'bg-lora-primary'}`}
+                    disabled={modifiers[modifierStep].required && (modifierSelections[modifiers[modifierStep].name] || []).length === 0}
+                    className={`flex-1 py-4 rounded-xl items-center ${modifiers[modifierStep].required && (modifierSelections[modifiers[modifierStep].name] || []).length === 0 ? 'bg-gray-300' : 'bg-lora-primary'}`}
                   >
                     <Text className="text-white font-InterBold">
-                      {modifierStep < selectedProduct.modifiers.length - 1 ? 'Siguiente' : 'Confirmar'}
+                      {modifierStep < modifiers.length - 1 ? 'Siguiente' : 'Confirmar'}
                     </Text>
                   </Pressable>
                 </View>
               </>
             )}
-            <Pressable onPress={() => { setShowModifierModal(false); setSelectedProduct(null); }} className="py-4 items-center mt-2">
+            <Pressable onPress={() => { setShowModifierModal(false); setSelectedProduct(null); setModifiers([]); }} className="py-4 items-center mt-2">
               <Text className="text-gray-400 font-InterBold">Cancelar</Text>
             </Pressable>
           </View>
@@ -273,7 +411,7 @@ const MenuScreen = () => {
                   </View>
                 )}
                 <Text className="text-lg font-InterBold text-lora-text mb-2">{selectedProduct.name}</Text>
-                <Text className="text-sm font-InterBold text-lora-primary mb-4">{formatCOP(selectedProduct.price)}</Text>
+                <Text className="text-sm font-InterBold text-lora-primary mb-4">{formatCOP(calculateTotalPrice())}</Text>
 
                 {Object.entries(modifierSelections).filter(([, opts]) => opts.length > 0).length > 0 && (
                   <View className="mb-4">
@@ -292,7 +430,7 @@ const MenuScreen = () => {
                 />
 
                 <View className="flex-row gap-3">
-                  <Pressable onPress={() => { setShowConfirmModal(false); setSelectedProduct(null); }} className="flex-1 bg-gray-100 py-4 rounded-xl items-center">
+                  <Pressable onPress={() => { setShowConfirmModal(false); setSelectedProduct(null); setModifiers([]); }} className="flex-1 bg-gray-100 py-4 rounded-xl items-center">
                     <Text className="text-gray-500 font-InterBold">Cancelar</Text>
                   </Pressable>
                   <Pressable onPress={handleAddToCart} className="flex-1 bg-lora-primary py-4 rounded-xl items-center">

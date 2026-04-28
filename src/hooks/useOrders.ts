@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ordersApi, CreateOrderInput, AddOrderItemsInput, UpdateOrderStatusInput } from '@core/actions/orders';
 import { useAuthStore } from '@src/store/useAuthStore';
+import { TABLES_KEY } from '@src/hooks/useZones';
 
 export const ORDERS_KEY = ['orders'];
 
@@ -29,6 +30,7 @@ export function useCreateOrder() {
     mutationFn: (data: CreateOrderInput) => ordersApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDERS_KEY });
+      queryClient.invalidateQueries({ queryKey: TABLES_KEY });
     },
   });
 }

@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCategoryLists, useCreateModifier, useDeleteModifier, useAddModifierOption, useDeleteModifierOption, useRestockModifierOption } from '@src/hooks/useCategoryLists';
+import { useCategoryLists, useCreateModifier, useUpdateModifier, useDeleteModifier, useAddModifierOption, useDeleteModifierOption, useRestockModifierOption } from '@src/hooks/useCategoryLists';
 import { useAdminCategories } from '@src/hooks/useAdminCategories';
 import { CategoryModifier, ModifierOption } from '@core/actions/admin/category-lists';
 
@@ -23,18 +23,22 @@ const CategoryListsScreen = () => {
   const { data: categories } = useAdminCategories();
   const { data: categoryData, isLoading } = useCategoryLists(categoryId || '');
   const createModifier = useCreateModifier();
+  const updateModifier = useUpdateModifier();
   const deleteModifier = useDeleteModifier();
   const addOption = useAddModifierOption();
   const deleteOption = useDeleteModifierOption();
   const restockOption = useRestockModifierOption();
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingModifierId, setEditingModifierId] = useState('');
   const [optionModalVisible, setOptionModalVisible] = useState(false);
   const [selectedModifier, setSelectedModifier] = useState<CategoryModifier | null>(null);
   
   const [newListName, setNewListName] = useState('');
   const [newListRequired, setNewListRequired] = useState(false);
   const [newListMultiple, setNewListMultiple] = useState(false);
+  const [newListAffectsKitchen, setNewListAffectsKitchen] = useState(false);
   
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionPrice, setNewOptionPrice] = useState('');
@@ -44,24 +48,41 @@ const CategoryListsScreen = () => {
   const category = categories?.find((c) => c.id === categoryId);
   const modifiers = categoryData?.modifiers || [];
 
-  const handleCreateList = async () => {
+  const handleSaveList = async () => {
     if (!newListName.trim()) return;
     
     try {
-      await createModifier.mutateAsync({
-        categoryId: categoryId || '',
-        data: {
-          name: newListName.trim(),
-          required: newListRequired,
-          multiple: newListMultiple,
-        },
-      });
+      if (editMode) {
+        await updateModifier.mutateAsync({
+          categoryId: categoryId || '',
+          modifierId: editingModifierId,
+          data: {
+            name: newListName.trim(),
+            required: newListRequired,
+            multiple: newListMultiple,
+            affectsKitchen: newListAffectsKitchen,
+          },
+        });
+      } else {
+        await createModifier.mutateAsync({
+          categoryId: categoryId || '',
+          data: {
+            name: newListName.trim(),
+            required: newListRequired,
+            multiple: newListMultiple,
+            affectsKitchen: newListAffectsKitchen,
+          },
+        });
+      }
       setModalVisible(false);
+      setEditMode(false);
+      setEditingModifierId('');
       setNewListName('');
       setNewListRequired(false);
       setNewListMultiple(false);
+      setNewListAffectsKitchen(false);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo crear la lista');
+      Alert.alert('Error', editMode ? 'No se pudo editar la lista' : 'No se pudo crear la lista');
     }
   };
 
@@ -143,6 +164,17 @@ const CategoryListsScreen = () => {
     setOptionModalVisible(true);
   };
 
+  const openEditModal = (modifier: CategoryModifier) => {
+    setSelectedModifier(modifier);
+    setEditingModifierId(modifier.id);
+    setNewListName(modifier.name);
+    setNewListRequired(modifier.required);
+    setNewListMultiple(modifier.multiple);
+    setNewListAffectsKitchen(modifier.affectsKitchen);
+    setEditMode(true);
+    setModalVisible(true);
+  };
+
   const renderModifier = ({ item }: { item: CategoryModifier }) => (
     <View className="bg-white rounded-2xl p-4 mb-3 border border-lora-border/20 shadow-sm">
       <View className="flex-row justify-between items-center mb-3">
@@ -156,11 +188,18 @@ const CategoryListsScreen = () => {
               {item.required && <Text className="text-orange-500">Obligatorio</Text>}
               {item.required && item.multiple && <Text> • </Text>}
               {item.multiple && <Text>Selección múltiple</Text>}
-              {!item.required && !item.multiple && <Text>Opcional</Text>}
+              {item.affectsKitchen && <Text className="text-blue-500"> • Afecta cocina</Text>}
+              {!item.required && !item.multiple && !item.affectsKitchen && <Text>Opcional</Text>}
             </Text>
           </View>
         </View>
         <View className="flex-row gap-2">
+          <Pressable 
+            className="p-2 bg-blue-50 rounded-lg"
+            onPress={() => openEditModal(item)}
+          >
+            <Ionicons name="pencil" size={18} color="#2563EB" />
+          </Pressable>
           <Pressable 
             className="p-2 bg-emerald-50 rounded-lg"
             onPress={() => openOptionModal(item)}
@@ -263,11 +302,11 @@ const CategoryListsScreen = () => {
         )}
       </View>
 
-      {/* Create List Modal */}
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+      {/* Create/Edit List Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => { setModalVisible(false); setEditMode(false); setEditingModifierId(''); }}>
         <View className="flex-1 bg-black/50 justify-end">
           <View className="bg-white rounded-t-3xl p-6">
-            <Text className="text-xl font-InterBold text-lora-text mb-4">Nueva Lista</Text>
+            <Text className="text-xl font-InterBold text-lora-text mb-4">{editMode ? 'Editar Lista' : 'Nueva Lista'}</Text>
             
             <Text className="text-sm font-InterMedium text-lora-text-muted mb-1">Nombre</Text>
             <TextInput
@@ -297,6 +336,19 @@ const CategoryListsScreen = () => {
               </Pressable>
             </View>
 
+            <View className="flex-row items-center justify-between mb-6">
+              <View className="flex-1 mr-4">
+                <Text className="text-sm font-InterMedium text-lora-text">Afecta cocina</Text>
+                <Text className="text-xs text-lora-text-muted">Genera sub-items en cocina</Text>
+              </View>
+              <Pressable 
+                className={`w-12 h-6 rounded-full px-1 justify-center ${newListAffectsKitchen ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                onPress={() => setNewListAffectsKitchen(!newListAffectsKitchen)}
+              >
+                <View className={`w-4 h-4 bg-white rounded-full ${newListAffectsKitchen ? 'self-end' : 'self-start'}`} />
+              </Pressable>
+            </View>
+
             <View className="flex-row gap-3">
               <Pressable
                 onPress={() => setModalVisible(false)}
@@ -305,10 +357,10 @@ const CategoryListsScreen = () => {
                 <Text className="font-InterBold text-slate-500">Cancelar</Text>
               </Pressable>
               <Pressable
-                onPress={handleCreateList}
+                onPress={handleSaveList}
                 className="flex-1 py-4 bg-lora-primary rounded-2xl items-center"
               >
-                <Text className="font-InterBold text-white">Crear</Text>
+                <Text className="font-InterBold text-white">{editMode ? 'Guardar' : 'Crear'}</Text>
               </Pressable>
             </View>
           </View>

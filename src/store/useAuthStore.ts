@@ -3,6 +3,7 @@ import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
 import { loginAction } from '@core/actions/login.action';
 import { useAlertStore } from './useAlertStore';
 import { router } from 'expo-router';
+import { startTokenRefreshMonitor, stopTokenRefreshMonitor } from '@core/actions/api/generalActions';
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -74,6 +75,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         description: `${userData.firstName} ${userData.lastName}`,
       });
 
+      startTokenRefreshMonitor();
+
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -108,6 +111,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       profileImage: null,
     });
 
+    stopTokenRefreshMonitor();
+
     router.replace('/(main)/login');
   },
   checkAuthStatus: async () => {
@@ -133,6 +138,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       phone,
       profileImage,
     });
+
+    if (isLoggedIn === 'true') {
+      startTokenRefreshMonitor();
+    }
   },
   updateProfile: async (data) => {
     if (data.firstName !== undefined) {

@@ -2,7 +2,8 @@ import { formatCOP } from '@core/helper/validators';
 import { Table } from '@core/actions/tables';
 import { Order } from '@core/actions/orders';
 import { Ionicons } from '@expo/vector-icons';
-import { useZones, useTablesByZone } from '@hooks/useZones';
+import { useQueryClient } from '@tanstack/react-query';
+import { useZones, useTablesByZone, TABLES_KEY, ZONES_KEY } from '@hooks/useZones';
 import { useCreateOrder, useActiveOrderByTable } from '@hooks/useOrders';
 import { ScreenHeader } from '@src/components/ui/ScreenHeader';
 import { useRouter } from 'expo-router';
@@ -14,6 +15,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -30,7 +32,7 @@ const TableCard = ({ table, activeOrder, onOpenTable, onViewDetails }: {
   const isOccupied = table.status === 'OCCUPIED' || !!activeOrder;
 
   return (
-    <View className={`bg-white rounded-2xl p-4 mb-4 border-2 ${isOccupied ? 'border-red-500' : 'border-teal-500'} shadow-sm`}>
+    <View className={`bg-white rounded-2xl p-3 mb-2 border-2 ${isOccupied ? 'border-red-500' : 'border-teal-500'} shadow-sm`}>
       <View className="flex-row justify-between items-start mb-4">
         <View>
           <Text className="text-2xl font-InterBold text-lora-text uppercase">{table.name}</Text>
@@ -114,9 +116,11 @@ const ZoneSection = ({ zone, onOpenTable, onViewDetails }: { zone: { id: string;
         </View>
       </View>
 
-      <View className="px-4">
+      <View className="px-4 flex-row flex-wrap">
         {tables.map((table) => (
-          <TableWithOrder key={table.id} table={table} onOpenTable={onOpenTable} onViewDetails={onViewDetails} />
+          <View key={table.id} className="w-1/2 p-1">
+            <TableWithOrder table={table} onOpenTable={onOpenTable} onViewDetails={onViewDetails} />
+          </View>
         ))}
       </View>
     </View>
@@ -125,13 +129,22 @@ const ZoneSection = ({ zone, onOpenTable, onViewDetails }: { zone: { id: string;
 
 const WaitresScreen = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: zonesData, isLoading: zonesLoading } = useZones();
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [customerName, setCustomerName] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const createOrder = useCreateOrder();
 
   const zones = zonesData || [];
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ZONES_KEY });
+    await queryClient.invalidateQueries({ queryKey: TABLES_KEY });
+    setIsRefreshing(false);
+  };
 
   const handleOpenTable = (tableId: string) => {
     setSelectedTable(tableId);
@@ -150,7 +163,10 @@ const WaitresScreen = () => {
       setIsModalVisible(false);
       setSelectedTable(null);
       setCustomerName('');
-      router.push(`/(main)/private/tabs/waitres/${tableId}/menu` as any);
+      router.push({
+        pathname: '/(main)/private/tabs/waitres/[id]/menu',
+        params: { id: tableId },
+      } as any);
     } catch (error: any) {
       console.error('Error creating order:', error);
       Alert.alert('Error', error?.message || 'No se pudo abrir la mesa');
@@ -158,7 +174,10 @@ const WaitresScreen = () => {
   };
 
   const handleViewDetails = (tableId: string) => {
-    router.push(`/(main)/private/tabs/waitres/${tableId}/index` as any);
+    router.push({
+      pathname: '/(main)/private/tabs/waitres/[id]',
+      params: { id: tableId },
+    } as any);
   };
 
   if (zonesLoading) {
@@ -173,7 +192,12 @@ const WaitresScreen = () => {
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gray-50">
       <ScreenHeader title="Mesas" subtitle="Restaurante La Lora" />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 40, paddingTop: 10 }}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 40, paddingTop: 10 }}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#0A873A" />}
+      >
         {zones.map((zone) => (
           <ZoneSection key={zone.id} zone={zone} onOpenTable={handleOpenTable} onViewDetails={handleViewDetails} />
         ))}

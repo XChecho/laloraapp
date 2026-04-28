@@ -6,6 +6,12 @@ export interface CartItem {
   price: number;
   notes?: string;
   instanceId: string;
+  modifiers?: {
+    modifierName: string;
+    selectedOption: string;
+    priceExtra: number;
+    affectsKitchen: boolean;
+  }[];
 }
 
 interface MainStore {

@@ -1,6 +1,7 @@
 import { formatCOP } from '@core/helper/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useActiveOrderByTable } from '@src/hooks/useOrders';
+import { useTable } from '@src/hooks/useZones';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -56,6 +57,7 @@ const TableDetailsScreen = () => {
   const tableId = id as string;
   const router = useRouter();
   const { data: activeOrder, isLoading } = useActiveOrderByTable(tableId);
+  const { data: tableData } = useTable(tableId);
 
   const handleBack = () => {
     if (from === 'cashier') {
@@ -66,7 +68,10 @@ const TableDetailsScreen = () => {
   };
 
   const handleAddProducts = () => {
-    router.push(`/(main)/private/tabs/waitres/${tableId}/menu` as any);
+    router.push({
+      pathname: '/(main)/private/tabs/waitres/[id]/menu',
+      params: { id: tableId },
+    } as any);
   };
 
   const handleCloseTable = () => {
@@ -103,7 +108,7 @@ const TableDetailsScreen = () => {
         </Pressable>
         <View className="flex-1 ml-2">
           <Text className="text-xl font-InterBold text-lora-text">
-            {activeOrder.table?.name || `Mesa ${id}`}
+            {activeOrder.table?.name || tableData?.name || `Mesa ${id}`}
           </Text>
           <View className="flex-row items-center mt-1">
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: getStatusColor(activeOrder.status), marginRight: 4 }} />
