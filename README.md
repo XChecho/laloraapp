@@ -18,6 +18,7 @@ Restaurant & Sports Court Management Mobile Application built with Expo and Reac
 - **Styling**: NativeWind, Tailwind CSS, Reanimated
 - **State**: Zustand
 - **Data**: TanStack React Query
+- **Testing**: Jest, jest-expo, @testing-library/react-native
 
 ## Getting Started
 
@@ -45,6 +46,7 @@ src/
   assets/    # Fonts, images
 core/         # Adapters, database, helpers
 constants/   # Theming, constants
+__mocks__/   # Jest mocks for native modules
 ```
 
 ## Architecture
@@ -52,6 +54,29 @@ constants/   # Theming, constants
 - Feature-based modular architecture
 - File-based routing with Expo Router
 - Role-based access (Admin, Cashier, Kitchen, Waitress, CanchaManager)
+
+## 🧪 Testing
+
+The project uses **Jest** with `jest-expo` preset for React Native compatibility.
+
+### Run Tests
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:cov      # Coverage report
+npm run test:debug    # Verbose debugging
+```
+
+### Test Structure
+- **Pure functions** (`core/helper/validators.spec.ts`): Direct input/output testing.
+- **API layer** (`core/actions/api/generalActions.spec.ts`): Mock `global.fetch` to simulate HTTP.
+- **Zustand stores** (`src/store/*.spec.ts`): Reset state in `beforeEach`, test actions.
+- **Components** (`src/components/**/*.spec.tsx`): Mock data hooks, render with Testing Library.
+
+### Mocks
+- `__mocks__/expo-secure-store.ts` — In-memory secure storage.
+- `__mocks__/expo-router.ts` — Navigation with jest.fn().
+- `__mocks__/@expo/vector-icons.tsx` — Icons as `<Text>`.
 
 ## License
 

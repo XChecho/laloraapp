@@ -1,3 +1,5 @@
+import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface UpdateProfileRequest {
@@ -23,7 +25,6 @@ export interface ProfileResponse {
 }
 
 async function getAuthToken(): Promise<string | null> {
-  const { SecureStorageAdapter } = await import('@core/adapters/secure-storage.adapter');
   return await SecureStorageAdapter.getItem('token');
 }
 
