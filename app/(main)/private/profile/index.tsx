@@ -22,7 +22,6 @@ const userTypeLabels: Record<string, string> = {
   Cashier: 'Cajero',
   Kitchen: 'Cocina',
   Waitress: 'Mesero',
-  CanchaManager: 'Encargado de Cancha',
 };
 
 export default function ProfileScreen() {

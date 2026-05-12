@@ -4,6 +4,7 @@ import { loginAction } from '@core/actions/login.action';
 import { useAlertStore } from './useAlertStore';
 import { router } from 'expo-router';
 import { startTokenRefreshMonitor, stopTokenRefreshMonitor } from '@core/actions/api/generalActions';
+import { setAuthCallbacks } from '@core/actions/api/authCallbacks';
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -169,3 +170,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }));
   },
 }));
+
+setAuthCallbacks({
+  logout: () => useAuthStore.getState().logout(),
+  updateProfile: (data) => useAuthStore.getState().updateProfile(data),
+});

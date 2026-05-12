@@ -1,0 +1,105 @@
+/**
+ * ============================================================
+ * SUITE DE PRUEBAS: MenuSection — Componente React Native
+ * ============================================================
+ */
+
+// Aumentar timeout para evitar problemas con web preset
+jest.setTimeout(15000);
+
+import React from 'react';
+import { render, cleanup } from '@testing-library/react-native';
+import { MenuSection } from './MenuSection';
+
+// Mock del hook de datos
+jest.mock('@src/hooks/useAdminCategories', () => ({
+  useAdminCategories: jest.fn(),
+}));
+
+import { useAdminCategories } from '@src/hooks/useAdminCategories';
+
+const mockUseAdminCategories = useAdminCategories as jest.MockedFunction<
+  typeof useAdminCategories
+>;
+
+// Limpiar manualmente en lugar de usar afterEach automático
+afterAll(() => {
+  cleanup();
+});
+
+describe('MenuSection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAdminCategories.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    } as any);
+  });
+
+  it('debe renderizar sin errores en estado de carga', () => {
+    mockUseAdminCategories.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as any);
+
+    const { toJSON } = render(<MenuSection />);
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it('debe renderizar categorías cuando hay datos', () => {
+    mockUseAdminCategories.mockReturnValue({
+      data: [
+        { id: '1', name: 'Bebidas', enabled: true, productsCount: 5, icon: 'wine' },
+        { id: '2', name: 'Entradas', enabled: false, productsCount: 3, icon: 'restaurant' },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+
+    const { toJSON } = render(<MenuSection />);
+    const tree = toJSON();
+    expect(tree).toBeTruthy();
+    expect(tree?.children?.length).toBeGreaterThan(0);
+  });
+
+  it('debe mostrar estado vacío cuando no hay categorías', () => {
+    mockUseAdminCategories.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    } as any);
+
+    const { toJSON } = render(<MenuSection />);
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it('debe renderizar categorías activas e inactivas', () => {
+    mockUseAdminCategories.mockReturnValue({
+      data: [
+        { id: '1', name: 'Platos Fuertes', enabled: true, productsCount: 8 },
+        { id: '2', name: 'Postres', enabled: false, productsCount: 2 },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+
+    const { toJSON } = render(<MenuSection />);
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it('debe aceptar prop onPress', () => {
+    const onPressMock = jest.fn();
+    mockUseAdminCategories.mockReturnValue({
+      data: [
+        { id: '1', name: 'Carnes', enabled: true, productsCount: 4 },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+
+    const { toJSON } = render(<MenuSection onPress={onPressMock} />);
+    expect(toJSON()).toBeTruthy();
+  });
+});

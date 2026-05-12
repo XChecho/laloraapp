@@ -81,7 +81,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setImageFile(null);
       setIsEnabled(true);
     }
-  }, [product]);
+  }, [product, visible]);
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();

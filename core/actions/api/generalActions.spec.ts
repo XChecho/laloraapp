@@ -22,6 +22,14 @@
 import { fetchGeneral } from './generalActions';
 import { refreshTokenAction } from '../auth/refreshToken.action';
 
+// Mock del módulo de authCallbacks para evitar el ciclo de dependencias en tests
+jest.mock('./authCallbacks', () => ({
+  getAuthCallbacks: () => ({
+    logout: jest.fn(),
+    updateProfile: jest.fn(),
+  }),
+}));
+
 // Mock del módulo de refresh para controlar su comportamiento
 jest.mock('../auth/refreshToken.action', () => ({
   refreshTokenAction: jest.fn(),

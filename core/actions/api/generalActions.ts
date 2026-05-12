@@ -1,6 +1,6 @@
 import { SecureStorageAdapter } from '@core/adapters/secure-storage.adapter';
-import { useAuthStore } from '@src/store/useAuthStore';
 import { refreshTokenAction } from '../auth/refreshToken.action';
+import { getAuthCallbacks } from './authCallbacks';
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -82,7 +82,7 @@ function parseErrorMessage(statusCode: number, body: any): string {
 async function refreshToken(refreshToken: string | null): Promise<string | null> {
   if (!refreshToken) {
     console.warn('No refresh token available, logging out');
-    await useAuthStore.getState().logout();
+    await getAuthCallbacks().logout();
     return null;
   }
 
@@ -93,14 +93,14 @@ async function refreshToken(refreshToken: string | null): Promise<string | null>
     }
     await SecureStorageAdapter.setItem('token', result.access_token);
     await SecureStorageAdapter.setItem('refreshToken', result.refresh_token);
-    useAuthStore.getState().updateProfile({
+    await getAuthCallbacks().updateProfile({
       token: result.access_token,
       refreshToken: result.refresh_token,
     });
     return result.access_token;
   } catch (error) {
     console.error('Token refresh failed:', error);
-    await useAuthStore.getState().logout();
+    await getAuthCallbacks().logout();
     return null;
   }
 }

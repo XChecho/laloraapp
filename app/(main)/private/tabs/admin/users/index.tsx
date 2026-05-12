@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   Text,
@@ -10,24 +12,84 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserModal } from '../../../../../../src/components/admin/UserModal';
-import { useState } from 'react';
+import { useUsers, useCreateUser } from '@src/hooks/useUsers';
+import { ROLE_LABELS, ROLE_ICONS, ROLE_COLORS, type User, type FrontendRole } from '@src/types/user';
 
-const mockUsers = [
-  { id: '1', name: 'Carlos Rodriguez', role: 'Cajero', birthdate: '12 May 1990', icon: 'person', color: '#10B981', email: 'carlos@ejemplo.com', phone: '3001234567', entryDate: '10/10/2023' },
-  { id: '2', name: 'María Acevedo', role: 'Administrador', birthdate: '25 Jan 1985', icon: 'shield-checkmark', color: '#3B82F6', email: 'maria@ejemplo.com', phone: '3109876543', entryDate: '15/05/2022' },
-  { id: '3', name: 'Juan Sanchez', role: 'Cocina', birthdate: '03 Sep 1992', icon: 'restaurant', color: '#F59E0B', email: 'juan@ejemplo.com', phone: '3205554433', entryDate: '20/12/2023' },
-  { id: '4', name: 'Laura Restrepo', role: 'Mesero', birthdate: '15 Jul 1998', icon: 'walk', color: '#8B5CF6', email: 'laura@ejemplo.com', phone: '3008887766', entryDate: '01/01/2024' },
-];
+const formatDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return 'N/A';
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return 'N/A';
+  }
+};
 
 const UsersList = () => {
   const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredUsers = mockUsers.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    user.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: users, isLoading, error } = useUsers();
+  const createUser = useCreateUser();
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter(user => {
+      const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.toLowerCase();
+      const roleLabel = ROLE_LABELS[user.role]?.toLowerCase() ?? '';
+      const query = searchQuery.toLowerCase();
+      return fullName.includes(query) || roleLabel.includes(query);
+    });
+  }, [users, searchQuery]);
+
+  const handleSaveUser = (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    role: FrontendRole;
+    birthdate: string;
+    entryDate: string;
+  }) => {
+    createUser.mutate(
+      {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phone,
+        userType: data.role,
+      },
+      {
+        onSuccess: () => {
+          Alert.alert('Usuario creado', 'El usuario ha sido creado exitosamente.');
+        },
+        onError: (err: Error) => {
+          Alert.alert('Error', `No se pudo crear el usuario: ${err.message}`);
+        },
+      }
+    );
+  };
+
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-lora-bg" edges={['top']}>
+        <View className="flex-1 px-6 items-center justify-center">
+          <Ionicons name="alert-circle" size={48} color="#EF4444" />
+          <Text className="text-lg font-InterBold text-lora-text mt-4">Error al cargar usuarios</Text>
+          <Text className="text-sm font-InterMedium text-lora-text-muted mt-2 text-center">
+            {error.message}
+          </Text>
+          <Pressable
+            onPress={() => window.location.reload()}
+            className="bg-lora-primary px-6 py-3 rounded-2xl mt-6"
+          >
+            <Text className="font-InterBold text-white">Reintentar</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-lora-bg" edges={['top']}>
@@ -40,7 +102,7 @@ const UsersList = () => {
             </Pressable>
             <Text className="text-2xl font-InterBold text-lora-text">Usuarios</Text>
           </View>
-          <Pressable 
+          <Pressable
             onPress={() => setModalVisible(true)}
             className="bg-lora-primary w-10 h-10 rounded-full items-center justify-center"
           >
@@ -51,7 +113,7 @@ const UsersList = () => {
         {/* Search / Filter */}
         <View className="bg-white rounded-2xl p-4 mb-6 flex-row items-center border border-lora-border/30">
           <Ionicons name="search" size={20} color="#94A3B8" className="mr-3" />
-          <TextInput 
+          <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Buscar por nombre o rol..."
@@ -61,49 +123,73 @@ const UsersList = () => {
         </View>
 
         {/* List */}
-        <FlatList
-          data={filteredUsers}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <Pressable 
-              onPress={() => router.push(`/private/tabs/admin/users/${item.id}`)}
-              className="bg-white rounded-[24px] p-5 mb-4 border border-lora-border/20 shadow-sm flex-row items-center"
-            >
-              <View 
-                className="w-14 h-14 rounded-2xl items-center justify-center mr-4"
-                style={{ backgroundColor: `${item.color}15` }}
-              >
-                <Ionicons name={item.icon as any} size={28} color={item.color} />
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#6C63FF" />
+            <Text className="text-sm font-InterMedium text-lora-text-muted mt-4">Cargando usuarios...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredUsers}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View className="items-center mt-12">
+                <Ionicons name="people-outline" size={48} color="#94A3B8" />
+                <Text className="text-lg font-InterBold text-lora-text mt-4">No se encontraron usuarios</Text>
+                <Text className="text-sm font-InterMedium text-lora-text-muted mt-2 text-center">
+                  {searchQuery ? 'Intenta con otra búsqueda' : 'Agrega un nuevo usuario con el botón +'}
+                </Text>
               </View>
-              
-              <View className="flex-1">
-                <Text className="text-lg font-InterBold text-lora-text mb-1">{item.name}</Text>
-                <View className="flex-row items-center">
-                  <View 
-                    className="px-2 py-0.5 rounded-lg mr-3"
-                    style={{ backgroundColor: `${item.color}10` }}
+            }
+            renderItem={({ item }) => {
+              const icon = ROLE_ICONS[item.role] as keyof typeof Ionicons.glyphMap;
+              const color = ROLE_COLORS[item.role];
+              const name = `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || 'Sin nombre';
+              const roleLabel = ROLE_LABELS[item.role] ?? item.role;
+              const birthdate = formatDate(item.birthdate);
+
+              return (
+                <Pressable
+                  onPress={() => router.push(`/private/tabs/admin/users/${item.id}`)}
+                  className="bg-white rounded-[24px] p-5 mb-4 border border-lora-border/20 shadow-sm flex-row items-center"
+                >
+                  <View
+                    className="w-14 h-14 rounded-2xl items-center justify-center mr-4"
+                    style={{ backgroundColor: `${color}15` }}
                   >
-                    <Text className="text-[10px] font-InterBold" style={{ color: item.color }}>
-                      {item.role.toUpperCase()}
-                    </Text>
+                    <Ionicons name={icon} size={28} color={color} />
                   </View>
-                  <Text className="text-xs font-InterMedium text-lora-text-muted">
-                    🎂 {item.birthdate}
-                  </Text>
-                </View>
-              </View>
-              
-              <Ionicons name="chevron-forward" size={20} color="#E2E8F0" />
-            </Pressable>
-          )}
-        />
+
+                  <View className="flex-1">
+                    <Text className="text-lg font-InterBold text-lora-text mb-1">{name}</Text>
+                    <View className="flex-row items-center">
+                      <View
+                        className="px-2 py-0.5 rounded-lg mr-3"
+                        style={{ backgroundColor: `${color}10` }}
+                      >
+                        <Text className="text-[10px] font-InterBold" style={{ color }}>
+                          {roleLabel.toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text className="text-xs font-InterMedium text-lora-text-muted">
+                        {birthdate !== 'N/A' ? `🎂 ${birthdate}` : ''}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Ionicons name="chevron-forward" size={20} color="#E2E8F0" />
+                </Pressable>
+              );
+            }}
+          />
+        )}
       </View>
 
-      <UserModal 
+      <UserModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onSave={(data) => console.log('Save user:', data)}
+        onSave={handleSaveUser}
       />
     </SafeAreaView>
   );

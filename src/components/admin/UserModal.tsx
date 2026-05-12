@@ -12,12 +12,31 @@ import {
   PanResponder
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import type { User, FrontendRole } from '@src/types/user';
+import { ROLE_MAP_FROM_BACKEND } from '@src/types/user';
 
 interface UserModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (userData: any) => void;
-  initialData?: any;
+  onSave: (userData: {
+    firstName: string;
+    lastName: string;
+    role: FrontendRole;
+    email: string;
+    phone: string;
+    birthdate: string;
+    entryDate: string;
+  }) => void;
+  initialData?: {
+    id?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string;
+    phoneNumber?: string | null;
+    role?: FrontendRole;
+    birthdate?: string | null;
+    entryDate?: string | null;
+  };
   isEditing?: boolean;
 }
 
@@ -31,35 +50,42 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [birthdate, setBirthdate] = useState('');
-  const [role, setRole] = useState('mesero');
+  const [role, setRole] = useState<FrontendRole>('waiter');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [entryDate, setEntryDate] = useState('');
 
-  const roles = [
-    { label: 'Mesero', value: 'mesero' },
-    { label: 'Cajero', value: 'cajero' },
-    { label: 'Cocina', value: 'cocina' },
-    { label: 'Administrador', value: 'administrador' },
+  const roles: { label: string; value: FrontendRole }[] = [
+    { label: 'Mesero', value: 'waiter' },
+    { label: 'Cajero', value: 'cashier' },
+    { label: 'Cocina', value: 'kitchen' },
+    { label: 'Administrador', value: 'admin' },
   ];
 
   useEffect(() => {
     if (initialData && visible) {
-      // Split name if it comes as a single string
-      const nameParts = initialData.name ? initialData.name.split(' ') : ['', ''];
-      setFirstName(nameParts[0] || '');
-      setLastName(nameParts.slice(1).join(' ') || '');
-      setBirthdate(initialData.birthdate || '');
-      setRole(initialData.role?.toLowerCase() || 'mesero');
+      setFirstName(initialData.firstName || '');
+      setLastName(initialData.lastName || '');
+      setBirthdate((initialData.birthdate as string) || '');
+
+      if (initialData.role) {
+        if (initialData.role in ROLE_MAP_FROM_BACKEND) {
+          setRole(ROLE_MAP_FROM_BACKEND[initialData.role as keyof typeof ROLE_MAP_FROM_BACKEND]);
+        } else {
+          setRole(initialData.role as FrontendRole);
+        }
+      } else {
+        setRole('waiter');
+      }
+
       setEmail(initialData.email || '');
-      setPhone(initialData.phone || '');
-      setEntryDate(initialData.entryDate || '');
+      setPhone((initialData.phoneNumber as string) || '');
+      setEntryDate((initialData.entryDate as string) || '');
     } else if (visible) {
-      // Reset for new user
       setFirstName('');
       setLastName('');
       setBirthdate('');
-      setRole('mesero');
+      setRole('waiter');
       setEmail('');
       setPhone('');
       setEntryDate('');
@@ -68,22 +94,18 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   const hasUnsavedChanges = () => {
     if (!initialData) {
-      // New user: check if any fields are not empty
-      return !!firstName || !!lastName || !!birthdate || !!email || !!phone || !!entryDate || role !== 'mesero';
+      return !!firstName || !!lastName || !!birthdate || !!email || !!phone || !!entryDate || role !== 'waiter';
     } else {
-      // Edit user: check if any fields differ
-      const nameParts = initialData.name ? initialData.name.split(' ') : ['', ''];
-      const initialFirstName = nameParts[0] || '';
-      const initialLastName = nameParts.slice(1).join(' ') || '';
-      
+      const initialRole = (initialData.role as FrontendRole | undefined) || 'waiter';
+
       return (
-        firstName !== initialFirstName ||
-        lastName !== initialLastName ||
-        birthdate !== (initialData.birthdate || '') ||
-        role !== (initialData.role?.toLowerCase() || 'mesero') ||
+        firstName !== (initialData.firstName || '') ||
+        lastName !== (initialData.lastName || '') ||
+        birthdate !== ((initialData.birthdate as string) || '') ||
+        role !== initialRole ||
         email !== (initialData.email || '') ||
-        phone !== (initialData.phone || '') ||
-        entryDate !== (initialData.entryDate || '')
+        phone !== ((initialData.phoneNumber as string) || '') ||
+        entryDate !== ((initialData.entryDate as string) || '')
       );
     }
   };
@@ -106,7 +128,6 @@ export const UserModal: React.FC<UserModalProps> = ({
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only trigger swipe down if not scrolling horizontally too much
         return gestureState.dy > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
       },
       onPanResponderRelease: (evt, gestureState) => {
@@ -121,11 +142,10 @@ export const UserModal: React.FC<UserModalProps> = ({
     onSave({
       firstName,
       lastName,
-      name: `${firstName} ${lastName}`,
-      birthdate,
       role,
       email,
       phone,
+      birthdate,
       entryDate,
     });
     onClose();

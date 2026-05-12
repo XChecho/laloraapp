@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { Platform } from "react-native";
+import { Platform, LogBox } from "react-native";
 
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
@@ -20,6 +20,11 @@ import "./global.css";
 
 //Components
 import { GeneralModals } from "@src/components/modals/generalModals";
+
+// Suppress known warnings from dependencies
+LogBox.ignoreLogs([
+  'SafeAreaView has been deprecated',
+]);
 
 SplashScreen.preventAutoHideAsync();
 
